@@ -14,12 +14,19 @@ import {
   deleteReviewSchedule
 } from './utils/indexedDB.js'
 
+import InputView from './components/InputView.jsx'
+import QuizView from './components/QuizView.jsx'
+import ResultsView from './components/ResultsView.jsx'
+import Header from './components/Header.jsx'
+import ProgressIndicator from './components/ProgressIndicator.jsx'
+import QuestionAnswer from './components/QuestionAnswer.jsx'
+
 const SAMPLE_QUIZ = [
   {
     question: 'What does HTTP stand for?',
     options: [
       'HyperText Transfer Protocol',
-      'High Transfer Text Protocol',
+      'High Transfer Text Protocol', 
       'Hyper Transfer Type Protocol',
       'Home Tool Transfer Protocol',
     ],
@@ -37,29 +44,7 @@ const SAMPLE_QUIZ = [
   },
 ]
 
-const SAMPLE_TEXT = `1. What does HTTP stand for?
-A. HyperText Transfer Protocol
-B. High Transfer Text Protocol
-C. Hyper Transfer Type Protocol
-D. Home Tool Transfer Protocol
-*B
-
-2. [T/F] The Earth is flat.
-*F
-
-3. [FIB] Water boils at ___ degrees Celsius.
-*100
-
-4. [CLOZE] The capital of France is Paris.
-*capital, Paris
-
-5. [SA] Explain what makes a good user interface.
-*Suggested: Clear navigation, consistent design, responsive layout, and accessibility features`
-
-function cx(...classes) {
-  return classes.filter(Boolean).join(' ')
-}
-
+// Helper functions
 function normalizeOption(option) {
   return String(option ?? '').trim()
 }
@@ -69,340 +54,30 @@ function resolveAnswerIndex(item, options) {
     return item.answerIndex
   }
 
-  if (Number.isInteger(item?.answer)) {
-    const zeroBased = item.answer
-    const oneBased = item.answer - 1
-    if (zeroBased >= 0 && zeroBased < options.length) return zeroBased
-    if (oneBased >= 0 && oneBased < options.length) return oneBased
-  }
+  const normalizedAnswer = normalizeOption(item?.answer)
+  const normalizedOptions = options.map(normalizeOption)
 
-  if (typeof item?.answer === 'string') {
-    const answer = item.answer.trim()
-    return options.findIndex((option) => option === answer)
-  }
-
-  return -1
+  const index = normalizedOptions.indexOf(normalizedAnswer)
+  return index === -1 ? 0 : index
 }
 
-function detectQuestionType(questionLine) {
-  const tfMatch = questionLine.match(/^\d+\.\s*\[T\/F\]/i)
-  const fibMatch = questionLine.match(/^\d+\.\s*\[FIB\]/i)
-  const clozeMatch = questionLine.match(/^\d+\.\s*\[CLOZE\]/i)
-  const saMatch = questionLine.match(/^\d+\.\s*\[SA\]/i)
+// Markdown renderer component
+function MarkdownRenderer({ text, className = '' }) {
+  const html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
 
-  if (tfMatch) return 'true-false'
-  if (fibMatch) return 'fill-blank'
-  if (clozeMatch) return 'cloze'
-  if (saMatch) return 'short-answer'
-  return 'multiple-choice'
-}
-
-function parseTextFormat(raw) {
-  const lines = raw.split('\n').filter(line => line.trim())
-  const questions = []
-  let currentQuestion = null
-  let questionIndex = 0
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    
-    // Check if this is a new question (starts with number and dot)
-    const questionMatch = line.match(/^(\d+)\.\s*(.*)/)
-    if (questionMatch) {
-      // Save previous question if exists
-      if (currentQuestion) {
-        questions.push(currentQuestion)
-      }
-      
-      questionIndex++
-      const questionText = questionMatch[2]
-      const questionType = detectQuestionType(line)
-      
-      // Remove type marker from question text
-      const cleanQuestion = questionText.replace(/^\s*\[(T\/F|FIB|CLOZE|SA)\]\s*/i, '').trim()
-      
-      currentQuestion = {
-        id: `${questionIndex}-${cleanQuestion.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 36)}`,
-        question: cleanQuestion,
-        type: questionType,
-        rawQuestion: line
-      }
-    } else if (currentQuestion) {
-      // Process answer/options lines
-      if (line.startsWith('*')) {
-        // This is the answer line
-        const answer = line.substring(1).trim()
-        
-        switch (currentQuestion.type) {
-          case 'multiple-choice':
-            // For MCQ, the answer is the letter (A, B, C, D)
-            const answerLetter = answer.toUpperCase()
-            const answerIndex = answerLetter.charCodeAt(0) - 65 // A=0, B=1, etc.
-            if (answerIndex >= 0 && answerIndex <= 3) {
-              currentQuestion.answerIndex = answerIndex
-            }
-            break
-          case 'true-false':
-            currentQuestion.answer = answer.toLowerCase() === 'true'
-            break
-          case 'fill-blank':
-          case 'cloze':
-            currentQuestion.answers = [answer]
-            break
-          case 'short-answer':
-            currentQuestion.suggestedAnswer = answer
-            break
-        }
-      } else {
-        // This is an option line for MCQ
-        if (currentQuestion.type === 'multiple-choice') {
-          const optionMatch = line.match(/^([A-D])\.\s*(.*)/)
-          if (optionMatch) {
-            if (!currentQuestion.options) currentQuestion.options = []
-            currentQuestion.options.push(optionMatch[2].trim())
-          }
-        }
-      }
-    }
-  }
-  
-  // Add the last question
-  if (currentQuestion) {
-    questions.push(currentQuestion)
-  }
-
-  return questions
-}
-
-function parseCSVFormat(lines) {
-  const questions = []
-  let currentQuestion = null
-  let questionIndex = 0
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    const parts = line.split(',')
-
-    if (parts.length === 2) {
-      // Question and answer
-      const question = parts[0].trim()
-      const answer = parts[1].trim()
-
-      currentQuestion = {
-        id: `${questionIndex}-${question.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 36)}`,
-        question,
-        type: 'multiple-choice',
-        options: ['A', 'B', 'C', 'D'],
-        answerIndex: 0,
-      }
-
-      questions.push(currentQuestion)
-      questionIndex++
-    } else if (parts.length === 3) {
-      // Question, option A, option B
-      const question = parts[0].trim()
-      const optionA = parts[1].trim()
-      const optionB = parts[2].trim()
-
-      currentQuestion = {
-        id: `${questionIndex}-${question.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 36)}`,
-        question,
-        type: 'multiple-choice',
-        options: [optionA, optionB],
-        answerIndex: 0,
-      }
-
-      questions.push(currentQuestion)
-      questionIndex++
-    }
-  }
-
-  return { ok: true, value: questions }
-}
-
-function parseMarkdownFormat(text) {
-  const lines = text.split('\n').filter(line => line.trim())
-  const questions = []
-  let currentQuestion = null
-  let questionIndex = 0
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-
-    if (line.startsWith('##')) {
-      // New question
-      const question = line.substring(2).trim()
-
-      currentQuestion = {
-        id: `${questionIndex}-${question.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 36)}`,
-        question,
-        type: 'multiple-choice',
-        options: [],
-      }
-
-      questions.push(currentQuestion)
-      questionIndex++
-    } else if (line.startsWith('- ')) {
-      // Option
-      const option = line.substring(2).trim()
-
-      if (currentQuestion) {
-        currentQuestion.options.push(option)
-      }
-    }
-  }
-
-  return { ok: true, value: questions }
-}
-
-function safeParseQuizJson(raw) {
-  const text = (raw ?? '').trim()
-  if (!text) {
-    return { ok: false, error: 'Paste a JSON array, CSV, Markdown, or text format to begin.' }
-  }
-
-  // Try JSON format first (backward compatibility)
-  try {
-    const parsed = JSON.parse(text)
-    if (Array.isArray(parsed)) {
-      if (parsed.length === 0) {
-        return { ok: false, error: 'Add at least one question to start a quiz.' }
-      }
-
-      const normalized = parsed.map((item, idx) => {
-        const question = typeof item?.question === 'string' ? item.question.trim() : ''
-        const options = Array.isArray(item?.options) ? item.options.map(normalizeOption) : []
-        const uniqueOptions = new Set(options)
-        const answerIndex = resolveAnswerIndex(item, options)
-        const type = item?.type || 'multiple-choice'
-
-        if (!question) {
-          return { ok: false, error: `Item ${idx + 1}: "question" must be a non-empty string.` }
-        }
-        
-        // For MCQ, validate options
-        if (type === 'multiple-choice') {
-          if (options.length !== 4) {
-            return { ok: false, error: `Item ${idx + 1}: "options" must contain exactly 4 choices.` }
-          }
-          if (options.some((option) => !option)) {
-            return { ok: false, error: `Item ${idx + 1}: every option must contain text.` }
-          }
-          if (uniqueOptions.size !== options.length) {
-            return { ok: false, error: `Item ${idx + 1}: options must be unique.` }
-          }
-          if (answerIndex < 0 || answerIndex >= options.length) {
-            return {
-              ok: false,
-              error: `Item ${idx + 1}: "answer" must match an option or "answerIndex" must be 0-3.`,
-            }
-          }
-        }
-
-        return {
-          ok: true,
-          value: {
-            id: `${idx}-${question.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 36)}`,
-            question,
-            type,
-            ...(type === 'multiple-choice' && { options, answerIndex }),
-            ...(type === 'true-false' && { answer: item.answer }),
-            ...(type === 'fill-blank' && { answers: item.answers || [] }),
-            ...(type === 'cloze' && { answers: item.answers || [] }),
-            ...(type === 'short-answer' && { suggestedAnswer: item.suggestedAnswer }),
-          },
-        }
-      })
-
-      const firstError = normalized.find((item) => !item.ok)
-      if (firstError && !firstError.ok) return firstError
-
-      return { ok: true, value: normalized.map((item) => item.value) }
-    }
-  } catch {
-    // Not JSON, try other formats
-  }
-
-  // Try CSV format
-  try {
-    const lines = text.split('\n').filter(line => line.trim())
-    if (lines.length === 0) {
-      return { ok: false, error: 'No content found.' }
-      return { ok: false, error: 'No valid questions found in the text.' }
-    }
-
-    // Validate parsed questions
-    const normalized = parsed.map((item, idx) => {
-      if (!item.question) {
-        return { ok: false, error: `Question ${idx + 1}: Question text is required.` }
-      }
-
-      switch (item.type) {
-        case 'multiple-choice':
-          if (!item.options || item.options.length !== 4) {
-            return { ok: false, error: `Question ${idx + 1}: Multiple choice questions must have exactly 4 options (A, B, C, D).` }
-          }
-          if (typeof item.answerIndex !== 'number' || item.answerIndex < 0 || item.answerIndex > 3) {
-            return { ok: false, error: `Question ${idx + 1}: Must specify correct answer with *A, *B, *C, or *D.` }
-          }
-          break
-        case 'true-false':
-          if (typeof item.answer !== 'boolean') {
-            return { ok: false, error: `Question ${idx + 1}: True/False questions must specify answer with *T or *F.` }
-          }
-          break
-        case 'fill-blank':
-        case 'cloze':
-          if (!item.answers || item.answers.length === 0) {
-            return { ok: false, error: `Question ${idx + 1}: Must specify answer with *[answer].` }
-          }
-          break
-        case 'short-answer':
-          if (!item.suggestedAnswer) {
-            return { ok: false, error: `Question ${idx + 1}: Short answer questions must have a suggested answer with *[suggested answer].` }
-          }
-          break
-      }
-
-      return { ok: true, value: item }
-    })
-
-    const firstError = normalized.find((item) => !item.ok)
-    if (firstError && !firstError.ok) return firstError
-
-    return { ok: true, value: normalized.map((item) => item.value) }
-  } catch (error) {
-    return { ok: false, error: 'Failed to parse text format. Please check your syntax.' }
-  }
-}
-
-function formatSampleJson() {
-  return JSON.stringify(SAMPLE_QUIZ, null, 2)
-}
-
-function getScore(quiz, answers) {
-  return answers.reduce((total, answer, idx) => {
-    const question = quiz[idx]
-    if (!question) return total
-
-    switch (question.type) {
-      case 'multiple-choice':
-        return answer === question.answerIndex ? total + 1 : total
-      case 'true-false':
-        return answer === question.answer ? total + 1 : total
-      case 'fill-blank':
-      case 'cloze':
-        if (!answer || !question.answers) return total
-        const normalizedAnswer = answer.toLowerCase().trim()
-        const correctAnswers = question.answers.map(a => a.toLowerCase().trim())
-        return correctAnswers.includes(normalizedAnswer) ? total + 1 : total
-      case 'short-answer':
-        // Self-assessed questions count as correct if user marked them as correct
-        return answer?.selfAssessedCorrect ? total + 1 : total
-      default:
-        return total
-    }
-  }, 0)
+  return (
+    <div
+      className={className}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
 }
 
 export default function App() {
@@ -415,326 +90,61 @@ export default function App() {
   
   // Deck management state
   const [savedDecks, setSavedDecks] = useState([])
-  const [showSavedDecks, setShowSavedDecks] = useState(false)
-  const [showSaveDeck, setShowSaveDeck] = useState(false)
-  const [deckName, setDeckName] = useState('')
   const [currentDeckId, setCurrentDeckId] = useState(null)
-  const [saveError, setSaveError] = useState('')
-  const [deckLoading, setDeckLoading] = useState(false)
-  
-  // Question type specific state
-  const [textAnswers, setTextAnswers] = useState({})
-  const [showSuggestedAnswer, setShowSuggestedAnswer] = useState({})
-  
-  // AI Prompt Builder state
   const [showAIPromptBuilder, setShowAIPromptBuilder] = useState(false)
-  const [studyNotes, setStudyNotes] = useState('')
-  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState({
-    multipleChoice: true,
-    trueFalse: false,
-    fillBlank: false,
-    cloze: false,
-    shortAnswer: false
-  })
-  const [numberOfQuestions, setNumberOfQuestions] = useState(10)
-  const [topicInstructions, setTopicInstructions] = useState('')
-  const [generatedPrompt, setGeneratedPrompt] = useState('')
+  const [aiPrompt, setAiPrompt] = useState('')
   const [aiResponse, setAiResponse] = useState('')
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
   const [parseMessage, setParseMessage] = useState('')
   
-  // Review mistakes state
-  const [incorrectQuestions, setIncorrectQuestions] = useState([])
+  // Review mode state
   const [isReviewMode, setIsReviewMode] = useState(false)
-  
-  // Spaced repetition state
-  const [showReviewButtons, setShowReviewButtons] = useState(false)
-  const [dueReviews, setDueReviews] = useState([])
+  const [incorrectQuestions, setIncorrectQuestions] = useState([])
   const [isSpacedRepetition, setIsSpacedRepetition] = useState(false)
+  const [showReviewButtons, setShowReviewButtons] = useState(false)
+  const [reviewSchedule, setReviewSchedule] = useState([])
   
-  // Import functionality state
-  const [importMessage, setImportMessage] = useState('')
-  
-  // Image picker state
-  const [showImagePicker, setShowImagePicker] = useState(false)
-  const [imagePickerTarget, setImagePickerTarget] = useState(null) // {field, index}
-
-// Lightweight Markdown-to-HTML converter
-function parseMarkdown(text) {
-  if (!text) return ''
-  
-  let html = text
-  
-  // Escape HTML special characters first
-  html = html
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  
-  // Convert newlines to <br>
-  html = html.replace(/\n/g, '<br>')
-  
-  // Convert **bold** to <strong>
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-  
-  // Convert *italic* to <em>
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
-  
-  // Convert `inline code` to <code>
-  html = html.replace(/`(.*?)`/g, '<code>$1</code>')
-  
-  // Convert images ![alt](url) to <img>
-  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
-    // Basic security check - only allow data URLs, http/https, and relative paths
-    if (src.startsWith('data:') || src.startsWith('http') || src.startsWith('/') || !src.includes('://')) {
-      return `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 4px; margin: 4px 0;" />`
-    }
-    return match // Return original if not safe
-  })
-  
-  return html
-}
-
-// Convert image to base64 data URL
-function convertToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// Markdown renderer component
-function MarkdownRenderer({ text, className = '' }) {
-  const html = parseMarkdown(text)
-  return (
-    <div 
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  )
-}
-
   const current = quiz[idx]
   const total = quiz.length
   const answeredCount = useMemo(() => {
-    return answers.reduce((count, answer, idx) => {
-      const question = quiz[idx]
-      if (!question) return count
-      
-      switch (question.type) {
-        case 'multiple-choice':
-        case 'true-false':
-          return answer !== null ? count + 1 : count
-        case 'fill-blank':
-        case 'cloze':
-          return textAnswers[idx] ? count + 1 : count
-        case 'short-answer':
-          return answer?.selfAssessed !== undefined ? count + 1 : count
-        default:
-          return count
-      }
-    }, 0)
-  }, [answers, textAnswers, quiz])
-  const selectedIndex = answers[idx] ?? null
-  const score = useMemo(() => getScore(quiz, answers), [answers, quiz])
-  const percent = total ? Math.round((score / total) * 100) : 0
-  const progress = total ? ((idx + 1) / total) * 100 : 0
+    return answers.filter(answer => answer !== null).length
+  }, [answers])
+  const score = useMemo(() => getScore(quiz, answers), [quiz, answers])
+  const progress = useMemo(() => total > 0 ? (answeredCount / total) * 100 : 0, [answeredCount, total])
   const preview = useMemo(() => safeParseQuizJson(rawJson), [rawJson])
   const sampleJson = useMemo(() => formatSampleJson(), [])
 
   // Load saved decks on mount
   useEffect(() => {
-    const loadSavedDecks = async () => {
-      try {
-        const decks = await getAllDecks()
-        setSavedDecks(decks)
-      } catch (error) {
-        console.error('Failed to load saved decks:', error)
-      }
-    }
-    loadSavedDecks()
-  }, [])
-
-  // Check for last used deck on mount
-  useEffect(() => {
-    const loadLastUsedDeck = async () => {
-      try {
-        const lastDeckId = getLastUsedDeckId()
-        if (lastDeckId) {
-          const deck = await getDeckById(lastDeckId)
-          if (deck && deck.questions) {
-            setQuiz(deck.questions)
-            setAnswers(Array(deck.questions.length).fill(null))
-            setIdx(0)
-            setCurrentDeckId(deck.id)
-            setView('quiz')
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load last used deck:', error)
-      }
-    }
-    loadLastUsedDeck()
-  }, [])
-
-  const startQuiz = () => {
-    const parsed = safeParseQuizJson(rawJson)
-    if (!parsed.ok) {
-      setInputError(parsed.error)
-      return
-    }
-
-    setQuiz(parsed.value)
-    setAnswers(Array(parsed.value.length).fill(null))
-    setTextAnswers({})
-    setShowSuggestedAnswer({})
-    setIdx(0)
-    setInputError('')
-    setIsReviewMode(false)
-    setView('quiz')
-  }
-
-  const loadSample = () => {
-    setRawJson(SAMPLE_TEXT)
-    setInputError('')
-  }
-
-  const formatJson = () => {
-    const parsed = safeParseQuizJson(rawJson)
-    if (!parsed.ok) {
-      setInputError(parsed.error)
-      return
-    }
-
-    const formatted = parsed.value.map((item) => ({
-      question: item.question,
-      options: item.options,
-      answer: item.options[item.answerIndex],
-    }))
-
-    setRawJson(JSON.stringify(formatted, null, 2))
-    setInputError('')
-  }
-
-  const handleImport = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json,.csv,.md,.txt'
-    input.onchange = async (event) => {
-      const file = event.target.files[0]
-      if (!file) return
+    const loadDecks = async () => {
+      const decks = await getAllDecks()
+      setSavedDecks(decks)
       
-      try {
-        const text = await file.text()
-        const parsed = safeParseQuizJson(text)
-        
-        if (parsed.ok) {
-          setQuiz(parsed.value)
-          setAnswers(Array(parsed.value.length).fill(null))
-          setTextAnswers({})
-          setShowSuggestedAnswer({})
+      // Load last used deck
+      const lastUsedId = await getLastUsedDeckId()
+      if (lastUsedId) {
+        const deck = await getDeckById(lastUsedId)
+        if (deck) {
+          setCurrentDeckId(lastUsedId)
+          setQuiz(deck.questions)
+          setAnswers(Array(deck.questions.length).fill(null))
           setIdx(0)
-          setIsReviewMode(false)
-          setIsSpacedRepetition(false)
-          setView('quiz')
-          setImportMessage(`Imported ${parsed.value.length} questions (${text.includes(',') ? 'CSV format' : text.includes('##') || text.includes('###') ? 'Markdown format' : 'text format'})`)
-          setInputError('')
-        } else {
-          setImportMessage(`Import failed: ${parsed.error}`)
         }
-      } catch (error) {
-        setImportMessage(`Error reading file: ${error.message}`)
       }
     }
     
-    input.click()
-  }
+    loadDecks()
+  }, [])
 
-  const handleImagePicker = (field, index = null) => {
-    setImagePickerTarget({ field, index })
-    setShowImagePicker(true)
-  }
-
-  const handleImageUpload = async (file) => {
-    if (!file || !file.type.startsWith('image/')) {
-      setImportMessage('Please select a valid image file')
-      return
+  // Load review schedule on mount
+  useEffect(() => {
+    const loadReviewSchedule = async () => {
+      const schedule = await getReviewSchedule()
+      setReviewSchedule(schedule)
     }
     
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setImportMessage('Image is too large. Please use images smaller than 5MB.')
-      return
-    }
-    
-    try {
-      const base64 = await convertToBase64(file)
-      const imageMarkdown = `![image](${base64})`
-      
-      // Insert image markdown at the appropriate location
-      if (imagePickerTarget.field === 'question') {
-        setRawJson(prev => prev + '\n\n' + imageMarkdown)
-      } else if (imagePickerTarget.field === 'option' && imagePickerTarget.index !== null) {
-        // For options, we'd need to parse and update the JSON
-        // This is a simplified version - in production, you'd want proper JSON editing
-        setRawJson(prev => prev + '\n\n' + imageMarkdown)
-      }
-      
-      setImportMessage('Image added successfully. Note: Large images will increase storage size.')
-      setShowImagePicker(false)
-    } catch (error) {
-      setImportMessage('Failed to process image')
-    }
-  }
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      handleImageUpload(files[0])
-    }
-  }
-
-  const choose = (choiceIndex) => {
-    if (!current || selectedIndex !== null) return
-
-    setAnswers((currentAnswers) =>
-      currentAnswers.map((answer, answerIdx) => (answerIdx === idx ? choiceIndex : answer)),
-    )
-  }
-
-  const handleTextAnswer = (value, subIndex = null) => {
-    if (subIndex !== null) {
-      // For cloze questions with multiple blanks
-      setTextAnswers(prev => ({
-        ...prev,
-        [`${idx}-${subIndex}`]: value.trim()
-      }))
-    } else {
-      // For single answer questions
-      setTextAnswers(prev => ({
-        ...prev,
-        [idx]: value.trim()
-      }))
-    }
-  }
-
-  const handleSelfAssessment = (isCorrect) => {
-    setAnswers((currentAnswers) =>
-      currentAnswers.map((answer, answerIdx) => 
-        answerIdx === idx ? { selfAssessed: true, selfAssessedCorrect: isCorrect } : answer
-      ),
-    )
-  }
-
-  const toggleSuggestedAnswer = () => {
+    loadReviewSchedule()
+  }, [])
     setShowSuggestedAnswer(prev => ({
       ...prev,
       [idx]: !prev[idx]
@@ -1260,59 +670,51 @@ Requirements:
     const questionCount = lines.filter(line => /^\d+\./.test(line)).length
     setParseMessage(`Could not parse AI response. Found ${questionCount} potential questions. Error: ${parsed.error}`)
   }
-}
 
-const toggleSpacedRepetition = () => {
-  setIsSpacedRepetition(!isSpacedRepetition)
-}
-
-return (
-  <div className="min-h-dvh bg-[#f6f3ee] text-slate-950">
-    <div className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-        <div>
-          <div className="text-base font-semibold tracking-tight">PromptQuiz</div>
-          <div className="text-sm text-slate-600">Active recall from your own JSON</div>
+  return (
+    <div className="min-h-dvh bg-[#f6f3ee] text-slate-950">
+      <div className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+            <div>
+              <div className="text-base font-semibold tracking-tight">PromptQuiz</div>
+              <div className="text-sm text-slate-600">Active recall from your own JSON</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSpacedRepetition}
+                className={cx(
+                  'rounded-md border px-3 py-2 text-sm font-semibold',
+                  isSpacedRepetition 
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                    : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
+                )}
+              >
+                {isSpacedRepetition ? 'SR On' : 'SR Off'}
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Saved Decks ({savedDecks.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAIPromptBuilder(true)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                AI Prompt Builder
+              </button>
+              <button
+                type="button"
+                onClick={startDailyReview}
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Daily Review
+              </button>
+            </div>
+          </header>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleSpacedRepetition}
-            className={cx(
-              'rounded-md border px-3 py-2 text-sm font-semibold',
-              isSpacedRepetition 
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
-            )}
-          >
-            {isSpacedRepetition ? 'SR On' : 'SR Off'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAIPromptBuilder(true)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            AI Prompt Builder
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowSavedDecks(true)}
-            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            Saved Decks ({savedDecks.length})
-          </button>
-          <button
-            type="button"
-            onClick={toggleSpacedRepetition}
-            className={cx(
-              'rounded-md border px-3 py-2 text-sm font-semibold',
-              isSpacedRepetition 
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
-            )}
-          >
-            Daily Review
-          </button>
           {view === 'input' ? (
             <>
               <button
@@ -1372,151 +774,150 @@ return (
             </>
           )}
         </div>
-      </header>
+          </header>
 
-      {view === 'input' ? (
-        <main className="grid flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                  Paste your quiz JSON or text
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Use a JSON array or text format. Text format supports MCQ, True/False [T/F], Fill in Blank [FIB], Cloze [CLOZE], and Short Answer [SA] questions.
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={formatJson}
-                  disabled={!rawJson.trim()}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Format
-                </button>
-                <button
-                  type="button"
-                  onClick={clearQuiz}
-                  disabled={!rawJson.trim()}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-
-            <label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="quiz-json">
-              Quiz JSON
-            </label>
-            <textarea
-              id="quiz-json"
-              value={rawJson}
-              onChange={(event) => {
-                setRawJson(event.target.value)
-                if (inputError) setInputError('')
-              }}
-              placeholder={sampleJson}
-              spellCheck={false}
-              aria-invalid={Boolean(inputError)}
-              className={cx(
-                'mt-2 h-[420px] w-full resize-y rounded-lg border bg-slate-950 p-4 font-mono text-[12px] leading-5 text-slate-50 shadow-inner outline-none',
-                'placeholder:text-slate-500 focus:ring-2',
-                inputError
-                  ? 'border-rose-400 focus:ring-rose-300'
-                  : 'border-slate-800 focus:ring-teal-500',
-              )}
-            />
-
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div aria-live="polite">
-                {inputError ? (
-                  <p className="text-sm font-medium text-rose-700">{inputError}</p>
-                ) : rawJson.trim() && preview.ok ? (
-                  <p className="text-sm font-medium text-teal-700">
-                    Ready: {preview.value.length} question
-                    {preview.value.length === 1 ? '' : 's'}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={startQuiz}
-                  className="rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                >
-                  Start Quiz
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <aside className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
-            <div className="font-semibold">Accepted answer formats</div>
-            <div className="mt-3 space-y-3 leading-6">
-              <p>
-                <span className="font-mono text-xs">"answer"</span> can be the exact text of the
-                correct option.
-              </p>
-              <p>
-                <span className="font-mono text-xs">"answerIndex"</span> can be a number from 0
-                to 3.
-              </p>
-              <p>Duplicate or blank options are flagged before the quiz starts.</p>
-              <p className="mt-2 font-semibold">Markdown Support:</p>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li><span className="font-mono">**bold**</span> for bold text</li>
-                <li><span className="font-mono">*italic*</span> for italic text</li>
-                <li><span className="font-mono">`code`</span> for inline code</li>
-                <li><span className="font-mono">![alt](url)</span> for images</li>
-              </ul>
-              <p className="mt-2 text-xs">Use the Import button to add images or load CSV/Markdown files.</p>
-            </div>
-          </aside>
-        </main>
-      ) : null}
-
-        {view === 'quiz' && current ? (
-          <main className="flex flex-1 items-center py-6">
-            <section className="w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-teal-700">
-                    {isReviewMode ? 'Reviewing ' : 'Question '}{idx + 1} of {total}
+            {view === 'input' ? (
+              <main className="grid flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                      Paste your quiz JSON or text
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                      Use a JSON array or text format. Text format supports MCQ, True/False [T/F], Fill in Blank [FIB], Cloze [CLOZE], and Short Answer [SA] questions.
+                    </p>
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    {answeredCount} answered | Score {score}
-                    {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={formatJson}
+                      disabled={!rawJson.trim()}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      Format
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearQuiz}
+                      disabled={!rawJson.trim()}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      Clear
+                    </button>
                   </div>
                 </div>
-                <div className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">
-                  {Math.round(progress)}% through
+
+                <label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="quiz-json">
+                  Quiz JSON
+                </label>
+                <textarea
+                  id="quiz-json"
+                  value={rawJson}
+                  onChange={(event) => {
+                    setRawJson(event.target.value)
+                    if (inputError) setInputError('')
+                  }}
+                  placeholder={sampleJson}
+                  spellCheck={false}
+                  aria-invalid={Boolean(inputError)}
+                  className={cx(
+                    'mt-2 h-[420px] w-full resize-y rounded-lg border bg-slate-950 p-4 font-mono text-[12px] leading-5 text-slate-50 shadow-inner outline-none',
+                    'placeholder:text-slate-500 focus:ring-2',
+                    inputError
+                      ? 'border-rose-400 focus:ring-rose-300'
+                      : 'border-slate-800 focus:ring-teal-500',
+                    )}
+                  />
+
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div aria-live="polite">
+                      {inputError ? (
+                        <p className="text-sm font-medium text-rose-700">{inputError}</p>
+                      ) : rawJson.trim() && preview.ok ? (
+                        <p className="text-sm font-medium text-teal-700">
+                          Ready: {preview.value.length} question
+                          {preview.value.length === 1 ? '' : 's'}
+                        </p>
+                      ) : null}
+                    </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          type="button"
+                          onClick={startQuiz}
+                          className="rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        >
+                          Start Quiz
+                        </button>
+                      </div>
+                    </div>
+                </section>
+
+                <aside className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
+                  <div className="font-semibold">Accepted answer formats</div>
+                  <div className="mt-3 space-y-3 leading-6">
+                    <p>
+                      <span className="font-mono text-xs">"answer"</span> can be the exact text of the
+                      correct option.
+                    </p>
+                    <p>
+                      <span className="font-mono text-xs">"answerIndex"</span> can be a number from 0
+                      to 3.
+                    </p>
+                    <p>Duplicate or blank options are flagged before the quiz starts.</p>
+                    <p className="mt-2 font-semibold">Markdown Support:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li><span className="font-mono">**bold**</span> for bold text</li>
+                      <li><span className="font-mono">*italic*</span> for italic text</li>
+                      <li><span className="font-mono">`code`</span> for inline code</li>
+                      <li><span className="font-mono">![alt](url)</span> for images</li>
+                    </ul>
+                    <p className="mt-2 text-xs">Use Import button to add images or load CSV/Markdown files.</p>
+                  </aside>
+                </main>
+            ) : null}
+          ) : view === 'quiz' ? (
+            <main className="flex flex-1 items-center py-6">
+              <section className="w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                        <div className="text-sm font-semibold text-teal-700">
+                          {isReviewMode ? 'Reviewing ' : 'Question '}{idx + 1} of {total}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-600">
+                          {answeredCount} answered | Score {score}
+                          {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
+                        </div>
+                      </div>
+                      <div className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">
+                        {Math.round(progress)}% through
+                      </div>
+                    </div>
+
+                    <div
+                  className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={Math.round(progress)}
+                >
+                  <div className="h-full bg-teal-600" style={{ width: `${progress}%` }} />
                 </div>
-              </div>
+                  </div>
 
-              <div
-                className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"
-                role="progressbar"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                aria-valuenow={Math.round(progress)}
-              >
-                <div className="h-full bg-teal-600" style={{ width: `${progress}%` }} />
-              </div>
-
-              <h2 className="mt-8 text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
-                <MarkdownRenderer text={current.question} />
-              </h2>
+                  <h2 className="mt-8 text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
+                    <MarkdownRenderer text={current.question} />
+                  </h2>
 
               <div className="mt-6">
-                {/* Multiple Choice */}
-                {current.type === 'multiple-choice' && (
-                  <div className="grid gap-3">
-                    {current.options.map((option, optionIdx) => {
-                      const answered = answers[idx] !== null
-                      const isSelected = answers[idx] === optionIdx
-                      const isCorrect = optionIdx === current.answerIndex
-                      const isWrongSelected = answered && isSelected && !isCorrect
+                    {/* Multiple Choice */}
+                    {current.type === 'multiple-choice' && (
+                      <div className="grid gap-3">
+                        {current.options.map((option, optionIdx) => {
+                          const answered = answers[idx] !== null
+                          const isSelected = answers[idx] === optionIdx
+                          const isCorrect = optionIdx === current.answerIndex
+                          const isWrongSelected = answered && isSelected && !isCorrect
 
                       const variant = answered
                         ? isCorrect
@@ -1841,10 +1242,9 @@ return (
               </div>
             </section>
           </main>
-        ) : null}
-
-        {view === 'results' ? (
-          <main className="flex-1 py-6">
+            ) : null}
+          ) : view === 'results' ? (
+            <main className="flex-1 py-6">
             <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
               <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
                 <div className="rounded-lg bg-slate-950 p-5 text-white">
@@ -2093,6 +1493,17 @@ return (
                 >
                   Save
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSaveDeck(false)}
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Saved Decks Modal */}
         {showSavedDecks && (
