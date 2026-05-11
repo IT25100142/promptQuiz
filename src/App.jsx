@@ -453,6 +453,67 @@ export default function App() {
   
   // Import functionality state
   const [importMessage, setImportMessage] = useState('')
+  
+  // Image picker state
+  const [showImagePicker, setShowImagePicker] = useState(false)
+  const [imagePickerTarget, setImagePickerTarget] = useState(null) // {field, index}
+
+// Lightweight Markdown-to-HTML converter
+function parseMarkdown(text) {
+  if (!text) return ''
+  
+  let html = text
+  
+  // Escape HTML special characters first
+  html = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  
+  // Convert newlines to <br>
+  html = html.replace(/\n/g, '<br>')
+  
+  // Convert **bold** to <strong>
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  
+  // Convert *italic* to <em>
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  
+  // Convert `inline code` to <code>
+  html = html.replace(/`(.*?)`/g, '<code>$1</code>')
+  
+  // Convert images ![alt](url) to <img>
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
+    // Basic security check - only allow data URLs, http/https, and relative paths
+    if (src.startsWith('data:') || src.startsWith('http') || src.startsWith('/') || !src.includes('://')) {
+      return `<img src="${src}" alt="${alt}" style="max-width: 100%; height: auto; border-radius: 4px; margin: 4px 0;" />`
+    }
+    return match // Return original if not safe
+  })
+  
+  return html
+}
+
+// Convert image to base64 data URL
+function convertToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Markdown renderer component
+function MarkdownRenderer({ text, className = '' }) {
+  const html = parseMarkdown(text)
+  return (
+    <div 
+      className={className}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
 
   const current = quiz[idx]
   const total = quiz.length
@@ -588,6 +649,57 @@ export default function App() {
     }
     
     input.click()
+  }
+
+  const handleImagePicker = (field, index = null) => {
+    setImagePickerTarget({ field, index })
+    setShowImagePicker(true)
+  }
+
+  const handleImageUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      setImportMessage('Please select a valid image file')
+      return
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setImportMessage('Image is too large. Please use images smaller than 5MB.')
+      return
+    }
+    
+    try {
+      const base64 = await convertToBase64(file)
+      const imageMarkdown = `![image](${base64})`
+      
+      // Insert image markdown at the appropriate location
+      if (imagePickerTarget.field === 'question') {
+        setRawJson(prev => prev + '\n\n' + imageMarkdown)
+      } else if (imagePickerTarget.field === 'option' && imagePickerTarget.index !== null) {
+        // For options, we'd need to parse and update the JSON
+        // This is a simplified version - in production, you'd want proper JSON editing
+        setRawJson(prev => prev + '\n\n' + imageMarkdown)
+      }
+      
+      setImportMessage('Image added successfully. Note: Large images will increase storage size.')
+      setShowImagePicker(false)
+    } catch (error) {
+      setImportMessage('Failed to process image')
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      handleImageUpload(files[0])
+    }
   }
 
   const choose = (choiceIndex) => {
@@ -1202,23 +1314,7 @@ return (
             Daily Review
           </button>
           {view === 'input' ? (
-            <button
-              type="button"
-              onClick={loadSample}
-              onClick={() => setShowAIPromptBuilder(true)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              AI Prompt Builder
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowSavedDecks(true)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              Saved Decks ({savedDecks.length})
-            </button>
-            
-            {view === 'input' ? (
+            <>
               <button
                 type="button"
                 onClick={loadSample}
@@ -1240,103 +1336,110 @@ return (
               >
                 Import
               </button>
-            ) : (
-              <>
-                {quiz.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={openSaveDeckDialog}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    Save Deck
-                  </button>
-                )}
+              <button
+                type="button"
+                onClick={() => setShowSavedDecks(true)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Saved Decks ({savedDecks.length})
+              </button>
+            </>
+          ) : (
+            <>
+              {quiz.length > 0 && (
                 <button
                   type="button"
-                  onClick={editQuiz}
+                  onClick={openSaveDeckDialog}
                   className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
-                  Edit Quiz
+                  Save Deck
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={editQuiz}
+                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Edit Quiz
+              </button>
+              <button
+                type="button"
+                onClick={restartSession}
+                className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Restart
+              </button>
+            </>
+          )}
+        </div>
+      </header>
+
+      {view === 'input' ? (
+        <main className="grid flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                  Paste your quiz JSON or text
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  Use a JSON array or text format. Text format supports MCQ, True/False [T/F], Fill in Blank [FIB], Cloze [CLOZE], and Short Answer [SA] questions.
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={formatJson}
+                  disabled={!rawJson.trim()}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  Format
                 </button>
                 <button
                   type="button"
-                  onClick={restartSession}
-                  className="rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  onClick={clearQuiz}
+                  disabled={!rawJson.trim()}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  Restart
+                  Clear
                 </button>
-              </>
-            )}
-          </div>
-        </header>
-
-        {view === 'input' ? (
-          <main className="grid flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                    Paste your quiz JSON or text
-                  </h1>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    Use a JSON array or text format. Text format supports MCQ, True/False [T/F], Fill in Blank [FIB], Cloze [CLOZE], and Short Answer [SA] questions.
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    type="button"
-                    onClick={formatJson}
-                    disabled={!rawJson.trim()}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    Format
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearQuiz}
-                    disabled={!rawJson.trim()}
-                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    Clear
-                  </button>
-                </div>
               </div>
+            </div>
 
-              <label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="quiz-json">
-                Quiz JSON
-              </label>
-              <textarea
-                id="quiz-json"
-                value={rawJson}
-                onChange={(event) => {
-                  setRawJson(event.target.value)
-                  if (inputError) setInputError('')
-                }}
-                placeholder={sampleJson}
-                spellCheck={false}
-                aria-invalid={Boolean(inputError)}
-                className={cx(
-                  'mt-2 h-[420px] w-full resize-y rounded-lg border bg-slate-950 p-4 font-mono text-[12px] leading-5 text-slate-50 shadow-inner outline-none',
-                  'placeholder:text-slate-500 focus:ring-2',
-                  inputError
-                    ? 'border-rose-400 focus:ring-rose-300'
-                    : 'border-slate-800 focus:ring-teal-500',
-                )}
-              />
+            <label className="mt-5 block text-sm font-semibold text-slate-800" htmlFor="quiz-json">
+              Quiz JSON
+            </label>
+            <textarea
+              id="quiz-json"
+              value={rawJson}
+              onChange={(event) => {
+                setRawJson(event.target.value)
+                if (inputError) setInputError('')
+              }}
+              placeholder={sampleJson}
+              spellCheck={false}
+              aria-invalid={Boolean(inputError)}
+              className={cx(
+                'mt-2 h-[420px] w-full resize-y rounded-lg border bg-slate-950 p-4 font-mono text-[12px] leading-5 text-slate-50 shadow-inner outline-none',
+                'placeholder:text-slate-500 focus:ring-2',
+                inputError
+                  ? 'border-rose-400 focus:ring-rose-300'
+                  : 'border-slate-800 focus:ring-teal-500',
+              )}
+            />
 
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div aria-live="polite">
-                  {inputError ? (
-                    <p className="text-sm font-medium text-rose-700">{inputError}</p>
-                  ) : rawJson.trim() && preview.ok ? (
-                    <p className="text-sm font-medium text-teal-700">
-                      Ready: {preview.value.length} question
-                      {preview.value.length === 1 ? '' : 's'}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-500">Load the sample or paste your own set.</p>
-                  )}
-                </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div aria-live="polite">
+                {inputError ? (
+                  <p className="text-sm font-medium text-rose-700">{inputError}</p>
+                ) : rawJson.trim() && preview.ok ? (
+                  <p className="text-sm font-medium text-teal-700">
+                    Ready: {preview.value.length} question
+                    {preview.value.length === 1 ? '' : 's'}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
                   onClick={startQuiz}
@@ -1345,24 +1448,33 @@ return (
                   Start Quiz
                 </button>
               </div>
-            </section>
+            </div>
+          </section>
 
-            <aside className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
-              <div className="font-semibold">Accepted answer formats</div>
-              <div className="mt-3 space-y-3 leading-6">
-                <p>
-                  <span className="font-mono text-xs">"answer"</span> can be the exact text of the
-                  correct option.
-                </p>
-                <p>
-                  <span className="font-mono text-xs">"answerIndex"</span> can be a number from 0
-                  to 3.
-                </p>
-                <p>Duplicate or blank options are flagged before the quiz starts.</p>
-              </div>
-            </aside>
-          </main>
-        ) : null}
+          <aside className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
+            <div className="font-semibold">Accepted answer formats</div>
+            <div className="mt-3 space-y-3 leading-6">
+              <p>
+                <span className="font-mono text-xs">"answer"</span> can be the exact text of the
+                correct option.
+              </p>
+              <p>
+                <span className="font-mono text-xs">"answerIndex"</span> can be a number from 0
+                to 3.
+              </p>
+              <p>Duplicate or blank options are flagged before the quiz starts.</p>
+              <p className="mt-2 font-semibold">Markdown Support:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li><span className="font-mono">**bold**</span> for bold text</li>
+                <li><span className="font-mono">*italic*</span> for italic text</li>
+                <li><span className="font-mono">`code`</span> for inline code</li>
+                <li><span className="font-mono">![alt](url)</span> for images</li>
+              </ul>
+              <p className="mt-2 text-xs">Use the Import button to add images or load CSV/Markdown files.</p>
+            </div>
+          </aside>
+        </main>
+      ) : null}
 
         {view === 'quiz' && current ? (
           <main className="flex flex-1 items-center py-6">
@@ -1393,7 +1505,7 @@ return (
               </div>
 
               <h2 className="mt-8 text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
-                {current.question}
+                <MarkdownRenderer text={current.question} />
               </h2>
 
               <div className="mt-6">
@@ -1430,7 +1542,9 @@ return (
                           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-white text-xs font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200">
                             {String.fromCharCode(65 + optionIdx)}
                           </span>
-                          <span>{option}</span>
+                          <span className="text-left">
+                            <MarkdownRenderer text={option} />
+                          </span>
                         </button>
                       )
                     })}
@@ -1892,55 +2006,93 @@ return (
           </main>
         ) : null}
 
-        {/* Save Deck Modal */}
-        {showSaveDeck && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="mx-4 w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-lg">
-              <h2 className="text-xl font-semibold text-slate-950">Save Deck</h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Give your deck a name to save it for future use.
-              </p>
-              
-              <label className="mt-4 block text-sm font-semibold text-slate-800" htmlFor="deck-name">
-                Deck Name
-              </label>
-              <input
-                id="deck-name"
-                type="text"
-                value={deckName}
-                onChange={(e) => {
-                  setDeckName(e.target.value)
-                  if (saveError) setSaveError('')
-                }}
-                placeholder="e.g., JavaScript Basics"
-                className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                autoFocus
-              />
-              
-              {saveError && (
-                <p className="mt-2 text-sm font-medium text-rose-700">{saveError}</p>
-              )}
-              
-              <div className="mt-6 flex items-center justify-end gap-3">
+        {showImagePicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-slate-900">Add Image</h3>
+              <div className="mt-4">
+                <div className="rounded-lg border-2 border-dashed border-slate-300 p-8 text-center">
+                  <div className="mx-auto h-12 w-12 text-slate-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-sm text-slate-600">
+                      Drag and drop an image here, or click to select
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      PNG, JPG, GIF up to 5MB
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0]
+                      if (file) handleImageUpload(file)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.querySelector('input[type="file"]').click()}
+                    className="mt-4 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    Select Image
+                  </button>
+                </div>
+                <div
+                  className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <p className="text-xs text-slate-600">
+                    <strong>Note:</strong> Large images will increase storage size in IndexedDB.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowSaveDeck(false)}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  onClick={() => setShowImagePicker(false)}
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 >
                   Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveDeck}
-                  disabled={deckLoading || !deckName.trim()}
-                  className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {deckLoading ? 'Saving...' : 'Save Deck'}
                 </button>
               </div>
             </div>
           </div>
         )}
+
+        {showSaveDeck && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-semibold text-slate-900">Save Deck</h3>
+              <div className="mt-4">
+                <label htmlFor="deckName" className="block text-sm font-medium text-slate-700">
+                  Deck Name
+                </label>
+                <input
+                  type="text"
+                  id="deckName"
+                  value={deckName}
+                  onChange={(e) => setDeckName(e.target.value)}
+                  placeholder="Enter deck name"
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+                {saveError && (
+                  <p className="mt-2 text-sm text-rose-600">{saveError}</p>
+                )}
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleSaveDeck}
+                  className="flex-1 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  Save
+                </button>
 
         {/* Saved Decks Modal */}
         {showSavedDecks && (
