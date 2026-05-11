@@ -6,7 +6,8 @@ export default function Header({
   savedDecks, 
   showAIPromptBuilder, 
   setShowAIPromptBuilder, 
-  startDailyReview 
+  startDailyReview,
+  onShowDecks
 }) {
   return (
     <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -29,9 +30,10 @@ export default function Header({
         </button>
         <button
           type="button"
+          onClick={startDailyReview}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          Saved Decks ({savedDecks.length})
+          Daily Review
         </button>
         <button
           type="button"
@@ -42,10 +44,10 @@ export default function Header({
         </button>
         <button
           type="button"
-          onClick={startDailyReview}
+          onClick={onShowDecks}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
-          Daily Review
+          My Decks ({savedDecks.length})
         </button>
       </div>
     </header>
