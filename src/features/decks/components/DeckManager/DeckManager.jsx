@@ -50,14 +50,6 @@ export default function DeckManager({
       return
     }
 
-    const updatedDeck = {
-      ...existingDeck,
-      questions: [...(existingDeck.questions || []), ...questions],
-      questionCount: (existingDeck.questions?.length || 0) + questions.length
-    }
-
-    console.log('Updated deck:', updatedDeck)
-    
     error(`Successfully added ${questions.length} questions to "${existingDeck.name}"`)
     setTimeout(() => error(''), 3000)
     
@@ -92,23 +84,7 @@ export default function DeckManager({
   )
 
   return (
-    <div className="flex-1 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">My Decks</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage your quiz decks and study previous questions
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onCreateNew}
-          className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
-        >
-          Create New Deck
-        </button>
-      </div>
-
+    <div className="flex-1">
       <DeckList
         savedDecks={savedDecks}
         currentDeckId={currentDeckId}
@@ -121,7 +97,6 @@ export default function DeckManager({
         deckLoading={deckLoading}
         showDeleteConfirm={showDeleteConfirm}
         onShowDeleteConfirm={handleDeleteClick}
-        onCreateNew={onCreateNew}
       />
 
       {showAddQuestions && (

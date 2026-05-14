@@ -1,5 +1,8 @@
-import { cx } from '../../shared/utils/helpers.js'
-import MarkdownRenderer from '../../shared/ui/display/MarkdownRenderer.jsx'
+import { cx } from '../shared/utils/helpers.js'
+import MarkdownRenderer from './MarkdownRenderer.jsx'
+import QuizToolbar from './QuizToolbar.jsx'
+import ProgressBar from './ProgressBar.jsx'
+import CardOverviewModal from './CardOverviewModal.jsx'
 
 export default function QuizView({
   current,
@@ -21,37 +24,40 @@ export default function QuizView({
   isAnswered,
   goPrevious,
   goNext,
-  MarkdownRenderer
+  onQuizComplete,
+  MarkdownRenderer,
+  shuffleMode,
+  keepFirstQuestion,
+  toggleShuffleMode,
+  toggleKeepFirstQuestion,
+  showCardOverview,
+  setShowCardOverview,
+  jumpToQuestion,
+  quiz
 }) {
   if (!current) return null
 
   return (
     <main className="flex flex-1 items-center py-6">
       <section className="w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-teal-700">
-              {isReviewMode ? 'Reviewing ' : 'Question '}{idx + 1} of {total}
-            </div>
-            <div className="mt-1 text-sm text-slate-600">
-              {answeredCount} answered | Score {score}
-              {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
-            </div>
-          </div>
-          <div className="rounded-md bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-800">
-            {Math.round(progress)}% through
-          </div>
-        </div>
+        <QuizToolbar
+          shuffleMode={shuffleMode}
+          keepFirstQuestion={keepFirstQuestion}
+          toggleShuffleMode={toggleShuffleMode}
+          toggleKeepFirstQuestion={toggleKeepFirstQuestion}
+          onShowCardOverview={() => setShowCardOverview(true)}
+          total={total}
+        />
 
-        <div
-          className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"
-          role="progressbar"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow={Math.round(progress)}
-        >
-          <div className="h-full bg-teal-600" style={{ width: `${progress}%` }} />
-        </div>
+        <ProgressBar
+          idx={idx}
+          total={total}
+          progress={progress}
+          answeredCount={answeredCount}
+          score={score}
+          isReviewMode={isReviewMode}
+          incorrectQuestions={incorrectQuestions}
+        />
 
         <h2 className="mt-8 text-2xl font-semibold leading-snug tracking-tight sm:text-3xl">
           <MarkdownRenderer text={current.question} />
@@ -191,16 +197,16 @@ export default function QuizView({
           {current.type === 'cloze' && (
             <div className="space-y-4">
               <div className="text-lg leading-relaxed">
-                {current.question.split(/\{[^}]+\}/).map((part, partIdx) => (
+                {current.question.split(/\{\d+\}/).map((part, partIdx) => (
                   <span key={partIdx}>
                     {part}
-                    {partIdx < current.question.split(/\{[^}]+\}/).length - 1 && (
+                    {partIdx < current.answers.length && (
                       <input
                         type="text"
                         value={textAnswers[`${idx}-${partIdx}`] || ''}
                         onChange={(e) => handleTextAnswer(e.target.value, partIdx)}
                         disabled={answers[idx] !== null}
-                        placeholder="answer"
+                        placeholder={current.answers[partIdx] || 'answer'}
                         className={cx(
                           'mx-2 inline-block w-32 rounded-md border px-3 py-1 text-sm font-medium',
                           'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500',
@@ -320,7 +326,7 @@ export default function QuizView({
           </button>
           <button
             type="button"
-            onClick={goNext}
+            onClick={idx + 1 === total ? onQuizComplete : goNext}
             disabled={!isAnswered()}
             className="rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
@@ -328,6 +334,15 @@ export default function QuizView({
           </button>
         </div>
       </section>
+      
+      <CardOverviewModal
+        showCardOverview={showCardOverview}
+        setShowCardOverview={setShowCardOverview}
+        quiz={quiz}
+        answers={answers}
+        currentIndex={idx}
+        onJumpToQuestion={jumpToQuestion}
+      />
     </main>
   )
 }

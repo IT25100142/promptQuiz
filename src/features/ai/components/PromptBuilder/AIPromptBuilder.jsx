@@ -3,7 +3,7 @@ import PromptForm from './PromptForm.jsx'
 import PromptPreview from './PromptPreview.jsx'
 import ResponseParser from './ResponseParser.jsx'
 import AIChat from '../AIInterface/AIChat.jsx'
-import Modal from '../../../shared/ui/forms/Modals/Modal.jsx'
+import Modal from '../../../ui/forms/Modals/Modal.jsx'
 
 export default function AIPromptBuilder({
   showAIPromptBuilder,

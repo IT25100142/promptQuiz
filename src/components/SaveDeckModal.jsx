@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cx } from '../shared/utils/helpers.js'
-import Button from '../shared/ui/forms/Buttons/Button.jsx'
+import Button from '../features/ui/forms/Buttons/Button.jsx'
 export default function SaveDeckModal({ showSaveDeck, setShowSaveDeck, onSaveDeck, deckLoading }) {
   const [deckName, setDeckName] = useState('')
   const [saveError, setSaveError] = useState('')

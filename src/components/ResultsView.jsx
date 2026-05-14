@@ -1,5 +1,5 @@
 import { cx } from '../shared/utils/helpers.js'
-import MarkdownRenderer from '../shared/ui/display/MarkdownRenderer.jsx'
+import MarkdownRenderer from './MarkdownRenderer.jsx'
 export default function ResultsView({
   percent,
   score,
