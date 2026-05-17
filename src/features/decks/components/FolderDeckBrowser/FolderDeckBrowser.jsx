@@ -5,7 +5,7 @@ export default function FolderDeckBrowser({
   savedDecks,
   deckQuizzes,
   selectedDeckForQuiz,
-  currentDeckId,
+  currentDeckId: _currentDeckId,
   currentQuizId,
   onLoadDeck,
   onLoadQuiz,
@@ -168,7 +168,6 @@ export default function FolderDeckBrowser({
               onChange={(e) => setNewDeckName(e.target.value)}
               placeholder="Enter deck name..."
               className="flex-1 rounded-xl border border-teal-200 bg-white px-4 py-3 text-sm font-medium placeholder:text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-              autoFocus
             />
             <button
               onClick={handleCreateDeck}
@@ -209,8 +208,11 @@ export default function FolderDeckBrowser({
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-blue-700 mb-2">Select Deck</label>
+              <label className="block text-sm font-medium text-blue-700 mb-2" htmlFor="select-deck-for-new-quiz">
+                Select Deck
+              </label>
               <select
+                id="select-deck-for-new-quiz"
                 value={selectedDeckForNewQuiz}
                 onChange={(e) => setSelectedDeckForNewQuiz(e.target.value)}
                 className="w-full rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -222,15 +224,17 @@ export default function FolderDeckBrowser({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-blue-700 mb-2">Quiz Name</label>
+              <label className="block text-sm font-medium text-blue-700 mb-2" htmlFor="new-quiz-name-input">
+                Quiz Name
+              </label>
               <div className="flex gap-3">
                 <input
+                  id="new-quiz-name-input"
                   type="text"
                   value={newQuizName}
                   onChange={(e) => setNewQuizName(e.target.value)}
                   placeholder="Enter quiz name..."
                   className="flex-1 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium placeholder:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  autoFocus
                 />
                 <button
                   onClick={handleCreateQuiz}
@@ -324,7 +328,6 @@ export default function FolderDeckBrowser({
                         }
                       }}
                       className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                      autoFocus
                     />
                   ) : (
                     <button
@@ -424,7 +427,6 @@ export default function FolderDeckBrowser({
                                     }
                                   }}
                                   className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  autoFocus
                                 />
                               ) : (
                                 <button

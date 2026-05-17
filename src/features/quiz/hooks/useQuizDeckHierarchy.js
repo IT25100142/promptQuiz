@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   createDeck,
   updateDeck,
@@ -13,130 +13,158 @@ import {
   deleteQuestion,
 } from '../../../shared/services/indexedDB.js'
 
-/**
- * Deck / quiz folder hierarchy and CRUD (IndexedDB-backed).
- */
-export function useQuizDeckHierarchy({
-  setQuiz,
-  setAnswers,
-  setIdx,
-  setSavedDecks,
-}) {
-  const [currentQuizId, setCurrentQuizId] = useState(null)
-  const [deckQuizzes, setDeckQuizzes] = useState([])
-  const [selectedDeckForQuiz, setSelectedDeckForQuiz] = useState(null)
-  const [isCreatingDeck, setIsCreatingDeck] = useState(false)
-  const [isCreatingQuiz, setIsCreatingQuiz] = useState(false)
+export function useQuizDeckHierarchy({ dispatch }) {
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [dispatch],
+  )
 
-  const createNewDeck = async (deckName) => {
-    if (!deckName.trim()) {
-      throw new Error('Deck name cannot be empty')
-    }
+  const loadDeckQuizzes = useCallback(
+    async (deckId) => {
+      const quizzes = await getQuizzesByDeckId(deckId)
+      setState({ deckQuizzes: quizzes, selectedDeckForQuiz: deckId })
+      return quizzes
+    },
+    [setState],
+  )
 
-    const deckId = await createDeck(deckName.trim())
-    const updatedDecks = await getAllDecks()
-    setSavedDecks(updatedDecks)
-    return deckId
-  }
+  const loadQuizQuestions = useCallback(
+    async (quizId) => {
+      const questions = await getQuestionsByQuizId(quizId)
+      setState({
+        quiz: questions,
+        answers: Array(questions.length).fill(null),
+        idx: 0,
+        currentQuizId: quizId,
+      })
+      return questions
+    },
+    [setState],
+  )
 
-  const createNewQuiz = async (deckId, quizName) => {
-    if (!deckId) {
-      throw new Error('Please select a deck first')
-    }
-    if (!quizName.trim()) {
-      throw new Error('Quiz name cannot be empty')
-    }
+  const createNewDeck = useCallback(
+    async (deckName) => {
+      if (!deckName.trim()) {
+        throw new Error('Deck name cannot be empty')
+      }
 
-    const quizId = await createQuiz(deckId, quizName.trim())
-    await loadDeckQuizzes(deckId)
-    return quizId
-  }
+      const deckId = await createDeck(deckName.trim())
+      const updatedDecks = await getAllDecks()
+      setState({ savedDecks: updatedDecks })
+      return deckId
+    },
+    [setState],
+  )
 
-  const loadDeckQuizzes = async (deckId) => {
-    const quizzes = await getQuizzesByDeckId(deckId)
-    setDeckQuizzes(quizzes)
-    setSelectedDeckForQuiz(deckId)
-    return quizzes
-  }
+  const createNewQuiz = useCallback(
+    async (deckId, quizName) => {
+      if (!deckId) {
+        throw new Error('Please select a deck first')
+      }
+      if (!quizName.trim()) {
+        throw new Error('Quiz name cannot be empty')
+      }
 
-  const loadQuizQuestions = async (quizId) => {
-    const questions = await getQuestionsByQuizId(quizId)
-    setQuiz(questions)
-    setAnswers(Array(questions.length).fill(null))
-    setIdx(0)
-    setCurrentQuizId(quizId)
-    return questions
-  }
+      const quizId = await createQuiz(deckId, quizName.trim())
+      await loadDeckQuizzes(deckId)
+      return quizId
+    },
+    [loadDeckQuizzes],
+  )
 
-  const addQuestionsToQuiz = async (quizId, deckId, questions) => {
-    if (!quizId || questions.length === 0) {
-      throw new Error('No questions to add')
-    }
+  const addQuestionsToQuiz = useCallback(
+    async (quizId, deckId, questions) => {
+      if (!quizId || questions.length === 0) {
+        throw new Error('No questions to add')
+      }
 
-    await addQuestions(quizId, deckId, questions)
-    await loadQuizQuestions(quizId)
-  }
+      await addQuestions(quizId, deckId, questions)
+      await loadQuizQuestions(quizId)
+    },
+    [loadQuizQuestions],
+  )
 
-  const updateQuizQuestion = async (questionId, updates) => {
-    await updateQuestion(questionId, updates)
-    if (currentQuizId) {
-      await loadQuizQuestions(currentQuizId)
-    }
-  }
+  const updateQuizQuestion = useCallback(
+    async (questionId, updates, currentQuizId) => {
+      await updateQuestion(questionId, updates)
+      if (currentQuizId) {
+        await loadQuizQuestions(currentQuizId)
+      }
+    },
+    [loadQuizQuestions],
+  )
 
-  const deleteQuizQuestion = async (questionId) => {
-    await deleteQuestion(questionId)
-    if (currentQuizId) {
-      await loadQuizQuestions(currentQuizId)
-    }
-  }
+  const deleteQuizQuestion = useCallback(
+    async (questionId, currentQuizId) => {
+      await deleteQuestion(questionId)
+      if (currentQuizId) {
+        await loadQuizQuestions(currentQuizId)
+      }
+    },
+    [loadQuizQuestions],
+  )
 
-  const deleteQuizById = async (quizId) => {
-    await deleteQuiz(quizId)
-    if (selectedDeckForQuiz) {
-      await loadDeckQuizzes(selectedDeckForQuiz)
-    }
-    if (currentQuizId === quizId) {
-      setCurrentQuizId(null)
-      setQuiz([])
-      setAnswers([])
-      setIdx(0)
-    }
-  }
+  const deleteQuizById = useCallback(
+    async (quizId, selectedDeckForQuiz, currentQuizId) => {
+      await deleteQuiz(quizId)
+      if (selectedDeckForQuiz) {
+        await loadDeckQuizzes(selectedDeckForQuiz)
+      }
+      if (currentQuizId === quizId) {
+        setState({
+          currentQuizId: null,
+          quiz: [],
+          answers: [],
+          idx: 0,
+        })
+      }
+    },
+    [loadDeckQuizzes, setState],
+  )
 
-  const updateDeckInfo = async (deckId, updates) => {
-    await updateDeck(deckId, updates)
-    const updatedDecks = await getAllDecks()
-    setSavedDecks(updatedDecks)
-  }
+  const updateDeckInfo = useCallback(
+    async (deckId, updates) => {
+      await updateDeck(deckId, updates)
+      const updatedDecks = await getAllDecks()
+      setState({ savedDecks: updatedDecks })
+    },
+    [setState],
+  )
 
-  const updateQuizInfo = async (quizId, updates) => {
-    await updateQuiz(quizId, updates)
-    if (selectedDeckForQuiz) {
-      await loadDeckQuizzes(selectedDeckForQuiz)
-    }
-  }
+  const updateQuizInfo = useCallback(
+    async (quizId, updates, selectedDeckForQuiz) => {
+      await updateQuiz(quizId, updates)
+      if (selectedDeckForQuiz) {
+        await loadDeckQuizzes(selectedDeckForQuiz)
+      }
+    },
+    [loadDeckQuizzes],
+  )
 
-  return {
-    currentQuizId,
-    deckQuizzes,
-    selectedDeckForQuiz,
-    isCreatingDeck,
-    isCreatingQuiz,
-    setCurrentQuizId,
-    setDeckQuizzes,
-    setSelectedDeckForQuiz,
-    setIsCreatingDeck,
-    setIsCreatingQuiz,
-    createNewDeck,
-    createNewQuiz,
-    loadDeckQuizzes,
-    loadQuizQuestions,
-    addQuestionsToQuiz,
-    updateQuizQuestion,
-    deleteQuizQuestion,
-    deleteQuizById,
-    updateDeckInfo,
-    updateQuizInfo,
-  }
+  return useMemo(
+    () => ({
+      createNewDeck,
+      createNewQuiz,
+      loadDeckQuizzes,
+      loadQuizQuestions,
+      addQuestionsToQuiz,
+      updateQuizQuestion,
+      deleteQuizQuestion,
+      deleteQuizById,
+      updateDeckInfo,
+      updateQuizInfo,
+    }),
+    [
+      createNewDeck,
+      createNewQuiz,
+      loadDeckQuizzes,
+      loadQuizQuestions,
+      addQuestionsToQuiz,
+      updateQuizQuestion,
+      deleteQuizQuestion,
+      deleteQuizById,
+      updateDeckInfo,
+      updateQuizInfo,
+    ],
+  )
 }

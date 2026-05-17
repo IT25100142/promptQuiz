@@ -1,6 +1,6 @@
 import MarkdownRenderer from '../../../shared/ui/display/MarkdownRenderer.jsx'
 
-export default function ResultsDisplay({ quiz, answers, textAnswers, MarkdownRenderer }) {
+export default function ResultsDisplay({ quiz, answers, textAnswers }) {
   return (
     <div className="space-y-6">
       {quiz.map((question, questionIdx) => {

@@ -4,7 +4,7 @@ export default function PromptPreview({ generatedPrompt, onCopyToClipboard }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <label className="block text-sm font-semibold text-slate-800">
+        <label className="block text-sm font-semibold text-slate-800" htmlFor="ai-generated-prompt">
           Generated Prompt (copy this to your AI)
         </label>
         <button
@@ -16,6 +16,7 @@ export default function PromptPreview({ generatedPrompt, onCopyToClipboard }) {
         </button>
       </div>
       <textarea
+        id="ai-generated-prompt"
         value={generatedPrompt}
         readOnly
         rows={12}

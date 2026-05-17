@@ -1,22 +1,42 @@
 import { createContext, useContext } from 'react'
 import { useQuiz } from '../features/quiz/hooks/useQuizState.js'
 
-const QuizContext = createContext()
+const QuizSessionContext = createContext(null)
+const QuizLibraryContext = createContext(null)
+const QuizShellContext = createContext(null)
 
 export function QuizProvider({ children }) {
-  const quizState = useQuiz()
+  const { session, library, shell } = useQuiz()
 
   return (
-    <QuizContext.Provider value={quizState}>
-      {children}
-    </QuizContext.Provider>
+    <QuizSessionContext.Provider value={session}>
+      <QuizLibraryContext.Provider value={library}>
+        <QuizShellContext.Provider value={shell}>{children}</QuizShellContext.Provider>
+      </QuizLibraryContext.Provider>
+    </QuizSessionContext.Provider>
   )
 }
 
-export function useQuizContext() {
-  const context = useContext(QuizContext)
-  if (!context) {
-    throw new Error('useQuizContext must be used within a QuizProvider')
+export function useQuizSession() {
+  const ctx = useContext(QuizSessionContext)
+  if (!ctx) {
+    throw new Error('useQuizSession must be used within a QuizProvider')
   }
-  return context
+  return ctx
+}
+
+export function useQuizLibrary() {
+  const ctx = useContext(QuizLibraryContext)
+  if (!ctx) {
+    throw new Error('useQuizLibrary must be used within a QuizProvider')
+  }
+  return ctx
+}
+
+export function useQuizShell() {
+  const ctx = useContext(QuizShellContext)
+  if (!ctx) {
+    throw new Error('useQuizShell must be used within a QuizProvider')
+  }
+  return ctx
 }

@@ -5,7 +5,7 @@ export default function DeckForm({
   selectedDeck, 
   onConfirmAddQuestions, 
   onCancel, 
-  deckLoading 
+  deckLoading: _deckLoading 
 }) {
   const [newQuestions, setNewQuestions] = useState('')
   const [addQuestionsError, setAddQuestionsError] = useState('')

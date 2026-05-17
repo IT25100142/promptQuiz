@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 export default function PromptForm({ 
   studyNotes, 
   setStudyNotes, 
@@ -39,10 +37,10 @@ export default function PromptForm({
 
       {/* Question Types */}
       <div>
-        <label className="block text-sm font-semibold text-slate-800 mb-3">
+        <label className="block text-sm font-semibold text-slate-800 mb-3" htmlFor="question-types-group">
           Question Types (select at least one)
         </label>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <fieldset id="question-types-group" className="grid grid-cols-2 gap-3 sm:grid-cols-5 border-0 p-0 m-0">
           {[
             { key: 'multipleChoice', label: 'Multiple Choice' },
             { key: 'trueFalse', label: 'True/False' },
@@ -63,7 +61,7 @@ export default function PromptForm({
               <span className="text-sm text-slate-700">{label}</span>
             </label>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       {/* Number of Questions */}

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { cx } from '../../../../shared/utils/helpers.js'
 import DeckList from '../DeckList/DeckList.jsx'
 import DeckForm from '../DeckEditor/DeckForm.jsx'
 
@@ -8,7 +7,7 @@ export default function DeckManager({
   onLoadDeck,
   onDeleteDeck,
   onEditDeck,
-  onCreateNew,
+  onCreateNew: _onCreateNew,
   deckLoading,
   currentDeckId
 }) {
@@ -56,35 +55,38 @@ export default function DeckManager({
     setShowAddQuestions(false)
   }
 
-  const renderDeleteConfirm = (deck) => (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/95 rounded-lg">
-      <div className="text-center p-4">
-        <p className="text-sm font-medium text-slate-900 mb-3">
-          Are you sure you want to delete "{deck.name}"?
-        </p>
-        <div className="flex gap-2 justify-center">
-          <button
-            type="button"
-            onClick={confirmDelete}
-            disabled={deckLoading}
-            className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
-          >
-            Delete
-          </button>
-          <button
-            type="button"
-            onClick={cancelDelete}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <div className="flex-1">
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-4 shadow-lg"
+          >
+            <p className="text-sm font-medium text-slate-900 mb-3">
+              Are you sure you want to delete this deck?
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deckLoading}
+                className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={cancelDelete}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <DeckList
         savedDecks={savedDecks}
         currentDeckId={currentDeckId}
@@ -93,9 +95,7 @@ export default function DeckManager({
         onLoadDeck={handleLoadDeck}
         onEditDeck={onEditDeck}
         onAddQuestions={handleAddQuestions}
-        onDeleteDeck={confirmDelete}
         deckLoading={deckLoading}
-        showDeleteConfirm={showDeleteConfirm}
         onShowDeleteConfirm={handleDeleteClick}
       />
 

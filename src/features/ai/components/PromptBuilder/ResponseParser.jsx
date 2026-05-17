@@ -10,10 +10,11 @@ export default function ResponseParser({
 }) {
   return (
     <div className="border-t border-slate-200 pt-6">
-      <label className="block text-sm font-semibold text-slate-800 mb-3">
+      <label className="block text-sm font-semibold text-slate-800 mb-3" htmlFor="ai-response-paste">
         Paste AI Response
       </label>
       <textarea
+        id="ai-response-paste"
         value={aiResponse}
         onChange={(e) => setAiResponse(e.target.value)}
         placeholder="Paste response from your AI here..."

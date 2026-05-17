@@ -8,9 +8,7 @@ export default function DeckList({
   onLoadDeck, 
   onEditDeck, 
   onAddQuestions, 
-  onDeleteDeck, 
   deckLoading,
-  showDeleteConfirm,
   onShowDeleteConfirm
 }) {
   if (savedDecks.length === 0) {
@@ -29,9 +27,7 @@ export default function DeckList({
           onLoadDeck={onLoadDeck}
           onEditDeck={onEditDeck}
           onAddQuestions={onAddQuestions}
-          onDeleteDeck={onDeleteDeck}
           deckLoading={deckLoading}
-          showDeleteConfirm={showDeleteConfirm}
           onShowDeleteConfirm={onShowDeleteConfirm}
         />
       ))}

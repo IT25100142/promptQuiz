@@ -1,5 +1,3 @@
-import { cx } from '../shared/utils/helpers.js'
-
 export default function ProgressBar({
   idx,
   total,

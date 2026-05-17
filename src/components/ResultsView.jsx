@@ -1,5 +1,4 @@
 import { cx } from '../shared/utils/helpers.js'
-import MarkdownRenderer from './MarkdownRenderer.jsx'
 export default function ResultsView({
   percent,
   score,
@@ -12,7 +11,6 @@ export default function ResultsView({
   restartSession,
   startReviewMistakes,
   editQuiz,
-  MarkdownRenderer
 }) {
   return (
     <main className="flex-1 py-6">
@@ -100,7 +98,7 @@ export default function ResultsView({
                     if (clozeAnswers.every(a => a && question.answers)) {
                       const normalizedAnswers = clozeAnswers.map(a => a.toLowerCase().trim())
                       const correctAnswers = question.answers.map(a => a.toLowerCase().trim())
-                      isCorrect = normalizedAnswers.every((a, i) => correctAnswers.includes(a))
+                      isCorrect = normalizedAnswers.every((a) => correctAnswers.includes(a))
                     }
                     userAnswerText = clozeAnswers.length > 0 ? clozeAnswers.join(', ') : 'No answer'
                     correctAnswerText = question.answers?.join(', ') || 'N/A'

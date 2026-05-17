@@ -1,5 +1,4 @@
 import { cx } from '../shared/utils/helpers.js'
-import MarkdownRenderer from './MarkdownRenderer.jsx'
 import QuizToolbar from './QuizToolbar.jsx'
 import ProgressBar from './ProgressBar.jsx'
 import CardOverviewModal from './CardOverviewModal.jsx'

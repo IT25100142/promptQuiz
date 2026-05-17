@@ -1,71 +1,67 @@
 import { useCallback } from 'react'
 import { SAMPLE_QUIZ } from '../../../shared/utils/helpers.js'
+import { validateQuizQuestions } from '../../../shared/schemas/quizQuestions.js'
 
-/**
- * Raw JSON / paste input helpers (sample, format, clear, start from preview).
- */
 export function useQuizJsonInput({
+  dispatch,
   rawJson,
-  setRawJson,
-  setInputError,
-  setQuiz,
-  setAnswers,
-  setIdx,
-  setCurrentDeckId,
   preview,
   clearSessionTextState,
-  setIsReviewMode,
 }) {
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [dispatch],
+  )
+
   const loadSample = useCallback(() => {
-    setRawJson(JSON.stringify(SAMPLE_QUIZ, null, 2))
-    setInputError('')
-  }, [setRawJson, setInputError])
+    setState({ rawJson: JSON.stringify(SAMPLE_QUIZ, null, 2), inputError: '' })
+  }, [setState])
 
   const formatJson = useCallback(() => {
     try {
       const parsed = JSON.parse(rawJson)
-      setRawJson(JSON.stringify(parsed, null, 2))
-      setInputError('')
+      setState({ rawJson: JSON.stringify(parsed, null, 2), inputError: '' })
     } catch {
-      setInputError('Invalid JSON format')
+      setState({ inputError: 'Invalid JSON format' })
     }
-  }, [rawJson, setRawJson, setInputError])
+  }, [rawJson, setState])
 
   const clearQuiz = useCallback(() => {
-    setRawJson('')
-    setQuiz([])
-    setAnswers([])
-    setIdx(0)
-    setInputError('')
-    setCurrentDeckId(null)
+    setState({
+      rawJson: '',
+      quiz: [],
+      answers: [],
+      idx: 0,
+      inputError: '',
+      currentDeckId: null,
+    })
     clearSessionTextState()
-  }, [
-    setRawJson,
-    setQuiz,
-    setAnswers,
-    setIdx,
-    setInputError,
-    setCurrentDeckId,
-    clearSessionTextState,
-  ])
+  }, [setState, clearSessionTextState])
 
   const startQuiz = useCallback(() => {
     if (!preview.ok) {
-      setInputError(preview.error)
+      setState({ inputError: preview.error })
       return false
     }
-    setQuiz(preview.value)
-    setAnswers(Array(preview.value.length).fill(null))
-    setIdx(0)
-    setInputError('')
-    setIsReviewMode(false)
+    const validated = validateQuizQuestions(preview.value)
+    if (!validated.ok) {
+      setState({ inputError: validated.error })
+      return false
+    }
+    setState({
+      quiz: validated.value,
+      answers: Array(validated.value.length).fill(null),
+      idx: 0,
+      inputError: '',
+      isReviewMode: false,
+    })
     clearSessionTextState()
     return true
-  }, [preview, setQuiz, setAnswers, setIdx, setInputError, setIsReviewMode, clearSessionTextState])
+  }, [preview, setState, clearSessionTextState])
 
   const prepareForEdit = useCallback(() => {
-    setInputError('')
-  }, [setInputError])
+    setState({ inputError: '' })
+  }, [setState])
 
   return { loadSample, formatJson, clearQuiz, startQuiz, prepareForEdit }
 }

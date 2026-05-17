@@ -1,12 +1,10 @@
-import { cx } from '../shared/utils/helpers.js'
-
 export default function QuizToolbar({
   shuffleMode,
   keepFirstQuestion,
   toggleShuffleMode,
   toggleKeepFirstQuestion,
   onShowCardOverview,
-  total
+  total: _total
 }) {
   return (
     <div className="flex items-center justify-between mb-4 px-1">

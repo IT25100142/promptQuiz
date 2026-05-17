@@ -2,82 +2,78 @@ import { useCallback } from 'react'
 import { shuffleArray } from '../utils/shuffleQuiz.js'
 import { getIncorrectQuestions } from '../utils/scoreSession.js'
 
-/**
- * In-quiz navigation, answers (MC + text + self-assessment), shuffle, and session reset.
- */
 export function useQuizSessionActions({
+  dispatch,
   quiz,
-  setQuiz,
   answers,
-  setAnswers,
   idx,
-  setIdx,
   current,
   total,
   textAnswers,
-  setTextAnswers,
-  setShowSuggestedAnswer,
+  showSuggestedAnswer,
   shuffleMode,
-  setShuffleMode,
   keepFirstQuestion,
-  setKeepFirstQuestion,
   originalQuiz,
-  setOriginalQuiz,
-  setIncorrectQuestions,
-  setIsReviewMode,
 }) {
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [dispatch],
+  )
+
   const clearSessionTextState = useCallback(() => {
-    setTextAnswers({})
-    setShowSuggestedAnswer({})
-  }, [setTextAnswers, setShowSuggestedAnswer])
+    setState({ textAnswers: {}, showSuggestedAnswer: {} })
+  }, [setState])
 
   const toggleShuffleMode = useCallback(() => {
     const next = !shuffleMode
-    setShuffleMode(next)
+    setState({ shuffleMode: next })
 
     if (next) {
-      setOriginalQuiz([...quiz])
-      const shuffled = shuffleArray(quiz, keepFirstQuestion)
-      setQuiz(shuffled)
-      setAnswers(Array(shuffled.length).fill(null))
-      setIdx(0)
+      setState({
+        originalQuiz: [...quiz],
+        quiz: shuffleArray(quiz, keepFirstQuestion),
+        answers: Array(quiz.length).fill(null),
+        idx: 0,
+      })
     } else if (originalQuiz.length > 0) {
-      setQuiz(originalQuiz)
-      setAnswers(Array(originalQuiz.length).fill(null))
-      setIdx(0)
+      setState({
+        quiz: originalQuiz,
+        answers: Array(originalQuiz.length).fill(null),
+        idx: 0,
+      })
     }
-  }, [shuffleMode, quiz, keepFirstQuestion, originalQuiz, setShuffleMode, setOriginalQuiz, setQuiz, setAnswers, setIdx])
+  }, [
+    shuffleMode,
+    quiz,
+    keepFirstQuestion,
+    originalQuiz,
+    setState,
+  ])
 
   const jumpToQuestion = useCallback(
     (questionIndex) => {
       if (questionIndex >= 0 && questionIndex < quiz.length) {
-        setIdx(questionIndex)
+        setState({ idx: questionIndex })
       }
     },
-    [quiz.length, setIdx],
+    [quiz.length, setState],
   )
 
   const choose = useCallback(
     (answerIdx) => {
-      setAnswers((prev) => {
-        const next = [...prev]
-        next[idx] = answerIdx
-        return next
-      })
+      const next = [...answers]
+      next[idx] = answerIdx
+      setState({ answers: next })
     },
-    [idx, setAnswers],
+    [idx, answers, setState],
   )
 
   const handleTextAnswer = useCallback(
     (value, blankIndex = null) => {
-      setTextAnswers((prev) => {
-        if (blankIndex !== null) {
-          return { ...prev, [`${idx}-${blankIndex}`]: value }
-        }
-        return { ...prev, [idx]: value }
-      })
+      const key = blankIndex !== null ? `${idx}-${blankIndex}` : idx
+      setState({ textAnswers: { ...textAnswers, [key]: value } })
     },
-    [idx, setTextAnswers],
+    [idx, textAnswers, setState],
   )
 
   const submitTextAnswer = useCallback(() => {
@@ -115,35 +111,35 @@ export function useQuizSessionActions({
         break
     }
 
-    setAnswers((prev) =>
-      prev.map((answer, answerIdx) =>
-        answerIdx === idx ? { isCorrect, userAnswer } : answer,
-      ),
+    const nextAnswers = answers.map((answer, answerIdx) =>
+      answerIdx === idx ? { isCorrect, userAnswer } : answer,
     )
-  }, [current, idx, textAnswers, setAnswers])
+    setState({ answers: nextAnswers })
+  }, [current, idx, textAnswers, answers, setState])
 
   const toggleSuggestedAnswer = useCallback(() => {
-    setShowSuggestedAnswer((prev) => ({
-      ...prev,
-      [idx]: !prev[idx],
-    }))
-  }, [idx, setShowSuggestedAnswer])
+    setState({
+      showSuggestedAnswer: {
+        ...showSuggestedAnswer,
+        [idx]: !showSuggestedAnswer[idx],
+      },
+    })
+  }, [idx, showSuggestedAnswer, setState])
 
   const handleSelfAssessment = useCallback(
     (isCorrect) => {
-      setAnswers((prev) =>
-        prev.map((answer, answerIdx) =>
-          answerIdx === idx
-            ? {
-                ...answer,
-                selfAssessed: true,
-                selfAssessedCorrect: isCorrect,
-              }
-            : answer,
-        ),
+      const nextAnswers = answers.map((answer, answerIdx) =>
+        answerIdx === idx
+          ? {
+              ...answer,
+              selfAssessed: true,
+              selfAssessedCorrect: isCorrect,
+            }
+          : answer,
       )
+      setState({ answers: nextAnswers })
     },
-    [idx, setAnswers],
+    [idx, answers, setState],
   )
 
   const isAnswered = useCallback(() => {
@@ -174,13 +170,14 @@ export function useQuizSessionActions({
   }, [current, answers, textAnswers, idx])
 
   const goPrevious = useCallback(() => {
-    setIdx((i) => Math.max(0, i - 1))
-  }, [setIdx])
+    setState({ idx: Math.max(0, idx - 1) })
+  }, [idx, setState])
 
   const completeQuizSession = useCallback(() => {
-    setIncorrectQuestions(getIncorrectQuestions(quiz, answers, textAnswers))
-    setIsReviewMode((prev) => !!prev)
-  }, [quiz, answers, textAnswers, setIncorrectQuestions, setIsReviewMode])
+    setState({
+      incorrectQuestions: getIncorrectQuestions(quiz, answers, textAnswers),
+    })
+  }, [quiz, answers, textAnswers, setState])
 
   const goNext = useCallback(() => {
     if (!isAnswered()) return
@@ -190,16 +187,18 @@ export function useQuizSessionActions({
       return
     }
 
-    setIdx((i) => i + 1)
-  }, [isAnswered, idx, total, completeQuizSession, setIdx])
+    setState({ idx: idx + 1 })
+  }, [isAnswered, idx, total, completeQuizSession, setState])
 
   const restartSession = useCallback(() => {
-    setAnswers(Array(total).fill(null))
     clearSessionTextState()
-    setIdx(0)
-    setIsReviewMode(false)
-    setIncorrectQuestions([])
-  }, [total, clearSessionTextState, setAnswers, setIdx, setIsReviewMode, setIncorrectQuestions])
+    setState({
+      answers: Array(total).fill(null),
+      idx: 0,
+      isReviewMode: false,
+      incorrectQuestions: [],
+    })
+  }, [total, clearSessionTextState, setState])
 
   const resetTextAnswers = useCallback(() => {
     clearSessionTextState()
@@ -207,16 +206,24 @@ export function useQuizSessionActions({
 
   const toggleKeepFirstQuestion = useCallback(() => {
     const next = !keepFirstQuestion
-    setKeepFirstQuestion(next)
+    setState({ keepFirstQuestion: next })
 
     if (shuffleMode && quiz.length > 0) {
       const baseQuiz = originalQuiz.length > 0 ? originalQuiz : quiz
       const shuffled = shuffleArray(baseQuiz, next)
-      setQuiz(shuffled)
-      setAnswers(Array(shuffled.length).fill(null))
-      setIdx(0)
+      setState({
+        quiz: shuffled,
+        answers: Array(shuffled.length).fill(null),
+        idx: 0,
+      })
     }
-  }, [keepFirstQuestion, shuffleMode, quiz, originalQuiz, setKeepFirstQuestion, setQuiz, setAnswers, setIdx])
+  }, [
+    keepFirstQuestion,
+    shuffleMode,
+    quiz,
+    originalQuiz,
+    setState,
+  ])
 
   return {
     clearSessionTextState,

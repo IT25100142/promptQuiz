@@ -1,4 +1,4 @@
-import { useState, useMemo, useLayoutEffect, useRef } from 'react'
+import { useMemo, useReducer, useCallback } from 'react'
 import { safeParseQuizJson } from '../../../shared/utils/helpers.js'
 import {
   countAnswered,
@@ -10,48 +10,49 @@ import { useQuizDeckSync } from './useQuizDeckSync.js'
 import { useQuizJsonInput } from './useQuizJsonInput.js'
 import { useQuizReviewActions } from './useQuizReviewActions.js'
 import { useQuizSessionActions } from './useQuizSessionActions.js'
+import { initialState, quizReducer } from './quizReducer.js'
 
 export function useQuiz() {
-  const [rawJson, setRawJson] = useState('')
-  const [inputError, setInputError] = useState('')
-  const [quiz, setQuiz] = useState([])
-  const [answers, setAnswers] = useState([])
-  const [idx, setIdx] = useState(0)
-  const [currentDeckId, setCurrentDeckId] = useState(null)
-  const [savedDecks, setSavedDecks] = useState([])
+  const [state, dispatch] = useReducer(quizReducer, initialState)
 
-  const [decksLoadStatus, setDecksLoadStatus] = useState('idle')
-  const [decksLoadError, setDecksLoadError] = useState(null)
-  const [appNotice, setAppNotice] = useState(null)
+  const {
+    quiz,
+    answers,
+    idx,
+    rawJson,
+    textAnswers,
+    currentDeckId,
+    appNotice,
+    parseMessage,
+    showAIPromptBuilder,
+    aiResponse,
+    inputError,
+    savedDecks,
+    decksLoadStatus,
+    decksLoadError,
+    currentQuizId,
+    deckQuizzes,
+    selectedDeckForQuiz,
+    isCreatingDeck,
+    isCreatingQuiz,
+    isReviewMode,
+    incorrectQuestions,
+    isSpacedRepetition,
+    showReviewButtons,
+    reviewSchedule,
+    shuffleMode,
+    keepFirstQuestion,
+    originalQuiz,
+    showCardOverview,
+    showSuggestedAnswer,
+  } = state
 
-  const [isReviewMode, setIsReviewMode] = useState(false)
-  const [incorrectQuestions, setIncorrectQuestions] = useState([])
-  const [isSpacedRepetition, setIsSpacedRepetition] = useState(false)
-  const [showReviewButtons, setShowReviewButtons] = useState(false)
-  const [reviewSchedule, setReviewSchedule] = useState([])
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [],
+  )
 
-  const [shuffleMode, setShuffleMode] = useState(false)
-  const [keepFirstQuestion, setKeepFirstQuestion] = useState(false)
-  const [originalQuiz, setOriginalQuiz] = useState([])
-  const [showCardOverview, setShowCardOverview] = useState(false)
-
-  const [aiResponse, setAiResponse] = useState('')
-  const [parseMessage, setParseMessage] = useState('')
-  const [showAIPromptBuilder, setShowAIPromptBuilder] = useState(false)
-
-  const [textAnswers, setTextAnswers] = useState({})
-  const [showSuggestedAnswer, setShowSuggestedAnswer] = useState({})
-
-  const hierarchy = useQuizDeckHierarchy({
-    setQuiz,
-    setAnswers,
-    setIdx,
-    setSavedDecks,
-  })
-  const hierarchyRef = useRef(hierarchy)
-  useLayoutEffect(() => {
-    hierarchyRef.current = hierarchy
-  }, [hierarchy])
+  const hierarchy = useQuizDeckHierarchy({ dispatch })
 
   const current = quiz[idx]
   const total = quiz.length
@@ -64,177 +65,121 @@ export function useQuiz() {
     () => progressPercent(answeredCount, total),
     [answeredCount, total],
   )
-  const preview = useMemo(() => safeParseQuizJson(rawJson), [rawJson])
+  const parsedPreview = useMemo(() => safeParseQuizJson(rawJson), [rawJson])
 
-  const session = useQuizSessionActions({
+  const sessionActions = useQuizSessionActions({
+    dispatch,
     quiz,
-    setQuiz,
     answers,
-    setAnswers,
     idx,
-    setIdx,
     current,
     total,
     textAnswers,
-    setTextAnswers,
-    setShowSuggestedAnswer,
+    showSuggestedAnswer,
     shuffleMode,
-    setShuffleMode,
     keepFirstQuestion,
-    setKeepFirstQuestion,
     originalQuiz,
-    setOriginalQuiz,
-    setIncorrectQuestions,
-    setIsReviewMode,
   })
 
   const jsonInput = useQuizJsonInput({
+    dispatch,
     rawJson,
-    setRawJson,
-    setInputError,
-    setQuiz,
-    setAnswers,
-    setIdx,
-    setCurrentDeckId,
-    preview,
-    clearSessionTextState: session.clearSessionTextState,
-    setIsReviewMode,
+    preview: parsedPreview,
+    clearSessionTextState: sessionActions.clearSessionTextState,
   })
 
   const review = useQuizReviewActions({
-    setIsSpacedRepetition,
-    setShowReviewButtons,
-    setAppNotice,
+    dispatch,
     incorrectQuestions,
-    setQuiz,
-    setAnswers,
-    setIdx,
-    clearSessionTextState: session.clearSessionTextState,
-    setIsReviewMode,
+    clearSessionTextState: sessionActions.clearSessionTextState,
   })
 
   const deckSync = useQuizDeckSync({
-    hierarchy,
-    setSavedDecks,
-    setDecksLoadStatus,
-    setDecksLoadError,
-    setCurrentDeckId,
-    setQuiz,
-    setAnswers,
-    setIdx,
-    setInputError,
+    dispatch,
     quiz,
     currentDeckId,
-    clearSessionTextState: session.clearSessionTextState,
+    clearSessionTextState: sessionActions.clearSessionTextState,
+    hierarchy,
+    selectedDeckForQuiz,
   })
 
-  return useMemo(
+  const shell = useMemo(
+    () => ({
+      appNotice,
+      setAppNotice: (appNotice) => setState({ appNotice }),
+      parseMessage,
+      setParseMessage: (parseMessage) => setState({ parseMessage }),
+      showAIPromptBuilder,
+      setShowAIPromptBuilder: (showAIPromptBuilder) =>
+        setState({ showAIPromptBuilder }),
+      aiResponse,
+      setAiResponse: (aiResponse) => setState({ aiResponse }),
+    }),
+    [
+      appNotice,
+      parseMessage,
+      showAIPromptBuilder,
+      aiResponse,
+      setState,
+    ],
+  )
+
+  const library = useMemo(
     () => ({
       rawJson,
       inputError,
-      quiz,
-      answers,
-      idx,
-      current,
-      total,
-      answeredCount,
-      score,
-      progress,
-      preview,
+      preview: parsedPreview,
       currentDeckId,
       savedDecks,
       decksLoadStatus,
       decksLoadError,
-      appNotice,
-      setAppNotice,
-      isReviewMode,
-      incorrectQuestions,
-      isSpacedRepetition,
-      showReviewButtons,
-      reviewSchedule,
-      parseMessage,
-      showAIPromptBuilder,
-      aiResponse,
-      shuffleMode,
-      keepFirstQuestion,
-      originalQuiz,
-      showCardOverview,
-      textAnswers,
-      showSuggestedAnswer,
-
-      currentQuizId: hierarchy.currentQuizId,
-      deckQuizzes: hierarchy.deckQuizzes,
-      selectedDeckForQuiz: hierarchy.selectedDeckForQuiz,
-      isCreatingDeck: hierarchy.isCreatingDeck,
-      isCreatingQuiz: hierarchy.isCreatingQuiz,
-
-      toggleSpacedRepetition: review.toggleSpacedRepetition,
+      currentQuizId,
+      deckQuizzes,
+      selectedDeckForQuiz,
+      isCreatingDeck,
+      isCreatingQuiz,
       loadSample: jsonInput.loadSample,
       formatJson: jsonInput.formatJson,
       clearQuiz: jsonInput.clearQuiz,
       startQuiz: jsonInput.startQuiz,
-      choose: session.choose,
-      completeQuizSession: session.completeQuizSession,
-      restartSession: session.restartSession,
-      startDailyReview: review.startDailyReview,
+      prepareForEdit: jsonInput.prepareForEdit,
       saveCurrentDeck: deckSync.saveCurrentDeck,
       loadDeck: deckSync.loadDeck,
       deleteDeck: deckSync.deleteDeckById,
-      prepareForEdit: jsonInput.prepareForEdit,
-      startReviewMistakes: review.startReviewMistakes,
-      toggleShuffleMode: session.toggleShuffleMode,
-      toggleKeepFirstQuestion: session.toggleKeepFirstQuestion,
-      jumpToQuestion: session.jumpToQuestion,
-
-      handleTextAnswer: session.handleTextAnswer,
-      submitTextAnswer: session.submitTextAnswer,
-      toggleSuggestedAnswer: session.toggleSuggestedAnswer,
-      handleSelfAssessment: session.handleSelfAssessment,
-      isAnswered: session.isAnswered,
-      goPrevious: session.goPrevious,
-      goNext: session.goNext,
-      resetTextAnswers: session.resetTextAnswers,
-
-      createNewDeck: (...args) => hierarchyRef.current.createNewDeck(...args),
-      createNewQuiz: (...args) => hierarchyRef.current.createNewQuiz(...args),
-      loadDeckQuizzes: (...args) => hierarchyRef.current.loadDeckQuizzes(...args),
-      loadQuizQuestions: (...args) => hierarchyRef.current.loadQuizQuestions(...args),
-      addQuestionsToQuiz: (...args) => hierarchyRef.current.addQuestionsToQuiz(...args),
-      updateQuizQuestion: (...args) => hierarchyRef.current.updateQuizQuestion(...args),
-      deleteQuizQuestion: (...args) => hierarchyRef.current.deleteQuizQuestion(...args),
-      deleteQuizById: (...args) => hierarchyRef.current.deleteQuizById(...args),
-      updateDeckInfo: (...args) => hierarchyRef.current.updateDeckInfo(...args),
-      updateQuizInfo: (...args) => hierarchyRef.current.updateQuizInfo(...args),
-
-      setRawJson,
-      setInputError,
-      setQuiz,
-      setAnswers,
-      setIdx,
-      setCurrentDeckId,
-      setSavedDecks,
-      setIsReviewMode,
-      setIncorrectQuestions,
-      setIsSpacedRepetition,
-      setShowReviewButtons,
-      setReviewSchedule,
-      setParseMessage,
-      setShowAIPromptBuilder,
-      setAiResponse,
-      setShuffleMode,
-      setKeepFirstQuestion,
-      setOriginalQuiz,
-      setShowCardOverview,
-      setCurrentQuizId: (...args) => hierarchyRef.current.setCurrentQuizId(...args),
-      setDeckQuizzes: (...args) => hierarchyRef.current.setDeckQuizzes(...args),
-      setSelectedDeckForQuiz: (...args) =>
-        hierarchyRef.current.setSelectedDeckForQuiz(...args),
-      setIsCreatingDeck: (...args) => hierarchyRef.current.setIsCreatingDeck(...args),
-      setIsCreatingQuiz: (...args) => hierarchyRef.current.setIsCreatingQuiz(...args),
+      setRawJson: (rawJson) => setState({ rawJson }),
+      setInputError: (inputError) => setState({ inputError }),
+      setCurrentDeckId: (currentDeckId) => setState({ currentDeckId }),
+      setSavedDecks: (savedDecks) => setState({ savedDecks }),
+      ...hierarchy,
     }),
     [
       rawJson,
       inputError,
+      parsedPreview,
+      currentDeckId,
+      savedDecks,
+      decksLoadStatus,
+      decksLoadError,
+      currentQuizId,
+      deckQuizzes,
+      selectedDeckForQuiz,
+      isCreatingDeck,
+      isCreatingQuiz,
+      jsonInput.loadSample,
+      jsonInput.formatJson,
+      jsonInput.clearQuiz,
+      jsonInput.startQuiz,
+      jsonInput.prepareForEdit,
+      deckSync.saveCurrentDeck,
+      deckSync.loadDeck,
+      deckSync.deleteDeckById,
+      hierarchy,
+      setState,
+    ],
+  )
+
+  const session = useMemo(
+    () => ({
       quiz,
       answers,
       idx,
@@ -243,76 +188,91 @@ export function useQuiz() {
       answeredCount,
       score,
       progress,
-      preview,
-      currentDeckId,
-      savedDecks,
-      decksLoadStatus,
-      decksLoadError,
-      appNotice,
       isReviewMode,
       incorrectQuestions,
       isSpacedRepetition,
       showReviewButtons,
       reviewSchedule,
-      parseMessage,
-      showAIPromptBuilder,
-      aiResponse,
       shuffleMode,
       keepFirstQuestion,
       originalQuiz,
       showCardOverview,
       textAnswers,
       showSuggestedAnswer,
-      hierarchy.currentQuizId,
-      hierarchy.deckQuizzes,
-      hierarchy.selectedDeckForQuiz,
-      hierarchy.isCreatingDeck,
-      hierarchy.isCreatingQuiz,
+      toggleSpacedRepetition: review.toggleSpacedRepetition,
+      choose: sessionActions.choose,
+      completeQuizSession: sessionActions.completeQuizSession,
+      restartSession: sessionActions.restartSession,
+      startDailyReview: review.startDailyReview,
+      startReviewMistakes: review.startReviewMistakes,
+      toggleShuffleMode: sessionActions.toggleShuffleMode,
+      toggleKeepFirstQuestion: sessionActions.toggleKeepFirstQuestion,
+      jumpToQuestion: sessionActions.jumpToQuestion,
+      handleTextAnswer: sessionActions.handleTextAnswer,
+      submitTextAnswer: sessionActions.submitTextAnswer,
+      toggleSuggestedAnswer: sessionActions.toggleSuggestedAnswer,
+      handleSelfAssessment: sessionActions.handleSelfAssessment,
+      isAnswered: sessionActions.isAnswered,
+      goPrevious: sessionActions.goPrevious,
+      goNext: sessionActions.goNext,
+      resetTextAnswers: sessionActions.resetTextAnswers,
+      setQuiz: (quiz) => setState({ quiz }),
+      setAnswers: (answers) => setState({ answers }),
+      setIdx: (idx) => setState({ idx }),
+      setIsReviewMode: (isReviewMode) => setState({ isReviewMode }),
+      setIncorrectQuestions: (incorrectQuestions) =>
+        setState({ incorrectQuestions }),
+      setIsSpacedRepetition: (isSpacedRepetition) =>
+        setState({ isSpacedRepetition }),
+      setShowReviewButtons: (showReviewButtons) =>
+        setState({ showReviewButtons }),
+      setReviewSchedule: (reviewSchedule) => setState({ reviewSchedule }),
+      setShuffleMode: (shuffleMode) => setState({ shuffleMode }),
+      setKeepFirstQuestion: (keepFirstQuestion) =>
+        setState({ keepFirstQuestion }),
+      setOriginalQuiz: (originalQuiz) => setState({ originalQuiz }),
+      setShowCardOverview: (showCardOverview) => setState({ showCardOverview }),
+    }),
+    [
+      quiz,
+      answers,
+      idx,
+      current,
+      total,
+      answeredCount,
+      score,
+      progress,
+      isReviewMode,
+      incorrectQuestions,
+      isSpacedRepetition,
+      showReviewButtons,
+      reviewSchedule,
+      shuffleMode,
+      keepFirstQuestion,
+      originalQuiz,
+      showCardOverview,
+      textAnswers,
+      showSuggestedAnswer,
       review.toggleSpacedRepetition,
-      jsonInput.loadSample,
-      jsonInput.formatJson,
-      jsonInput.clearQuiz,
-      jsonInput.startQuiz,
-      session.choose,
-      session.completeQuizSession,
-      session.restartSession,
+      sessionActions.choose,
+      sessionActions.completeQuizSession,
+      sessionActions.restartSession,
       review.startDailyReview,
-      deckSync.saveCurrentDeck,
-      deckSync.loadDeck,
-      deckSync.deleteDeckById,
-      jsonInput.prepareForEdit,
       review.startReviewMistakes,
-      session.toggleShuffleMode,
-      session.toggleKeepFirstQuestion,
-      session.jumpToQuestion,
-      session.handleTextAnswer,
-      session.submitTextAnswer,
-      session.toggleSuggestedAnswer,
-      session.handleSelfAssessment,
-      session.isAnswered,
-      session.goPrevious,
-      session.goNext,
-      session.resetTextAnswers,
-      setRawJson,
-      setInputError,
-      setQuiz,
-      setAnswers,
-      setIdx,
-      setCurrentDeckId,
-      setSavedDecks,
-      setIsReviewMode,
-      setIncorrectQuestions,
-      setIsSpacedRepetition,
-      setShowReviewButtons,
-      setReviewSchedule,
-      setParseMessage,
-      setShowAIPromptBuilder,
-      setAiResponse,
-      setShuffleMode,
-      setKeepFirstQuestion,
-      setOriginalQuiz,
-      setShowCardOverview,
-      setAppNotice,
+      sessionActions.toggleShuffleMode,
+      sessionActions.toggleKeepFirstQuestion,
+      sessionActions.jumpToQuestion,
+      sessionActions.handleTextAnswer,
+      sessionActions.submitTextAnswer,
+      sessionActions.toggleSuggestedAnswer,
+      sessionActions.handleSelfAssessment,
+      sessionActions.isAnswered,
+      sessionActions.goPrevious,
+      sessionActions.goNext,
+      sessionActions.resetTextAnswers,
+      setState,
     ],
   )
+
+  return { session, library, shell }
 }

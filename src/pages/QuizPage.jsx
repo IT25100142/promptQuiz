@@ -2,11 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { useQuizHandlers } from '../features/quiz/hooks/useQuizNavigation.js'
 import QuizView from '../components/QuizView.jsx'
 import MarkdownRenderer from '../features/ui/display/MarkdownRenderer.jsx'
-import { useQuizContext } from '../contexts/QuizContext.jsx'
+import { useQuizSession } from '../contexts/QuizContext.jsx'
 
 export default function QuizPage() {
   const navigate = useNavigate()
-  const quizState = useQuizContext()
+  const quizState = useQuizSession()
   const quizHandlers = useQuizHandlers(quizState)
 
   const handleQuizComplete = () => {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { useEffect } from 'react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { QuizProvider, useQuizContext } from '../contexts/QuizContext.jsx'
+import { QuizProvider, useQuizSession } from '../contexts/QuizContext.jsx'
 import QuizPage from './QuizPage.jsx'
 
 const twoMcq = [
@@ -21,7 +21,7 @@ const twoMcq = [
 ]
 
 function SeedTwoMcq() {
-  const ctx = useQuizContext()
+  const ctx = useQuizSession()
   useEffect(() => {
     ctx.setQuiz(twoMcq)
     ctx.setAnswers([null, null])
@@ -34,7 +34,7 @@ function SeedTwoMcq() {
 }
 
 function ResultsWithMetrics() {
-  const ctx = useQuizContext()
+  const ctx = useQuizSession()
   return (
     <div>
       <div data-testid="results-page">Results</div>

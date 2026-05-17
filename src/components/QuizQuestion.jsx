@@ -1,9 +1,7 @@
-import { MarkdownRenderer } from '../utils/helpers.js'
-
 export default function QuizQuestion({ 
   question, 
   idx, 
-  total, 
+  total: _total, 
   isAnswered, 
   showSuggestedAnswer, 
   setShowSuggestedAnswer 

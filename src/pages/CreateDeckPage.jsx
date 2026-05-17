@@ -4,15 +4,15 @@ import { useQuizHandlers } from '../features/quiz/hooks/useQuizNavigation.js'
 import { formatSampleJson } from '../shared/utils/helpers.js'
 import FolderDeckBrowser from '../features/decks/components/FolderDeckBrowser/FolderDeckBrowser.jsx'
 import QuestionEditor from '../features/questions/components/QuestionEditor/QuestionEditor.jsx'
-import { useQuizContext } from '../contexts/QuizContext.jsx'
+import { useQuizLibrary, useQuizSession } from '../contexts/QuizContext.jsx'
 
 export default function CreateDeckPage() {
   const navigate = useNavigate()
-  const quizState = useQuizContext()
-  const quizHandlers = useQuizHandlers(quizState)
+  const library = useQuizLibrary()
+  const session = useQuizSession()
+  const quizHandlers = useQuizHandlers(session)
   
   const [deckLoading, setDeckLoading] = useState(false)
-  const [editingDeckId, setEditingDeckId] = useState(null)
 
   const sampleJson = useMemo(() => formatSampleJson(), [])
 
@@ -20,7 +20,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.loadDeckQuizzes(deckId)
+      await library.loadDeckQuizzes(deckId)
     } catch (error) {
       console.error('Failed to load deck:', error)
     } finally {
@@ -32,7 +32,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.loadQuizQuestions(quizId)
+      await library.loadQuizQuestions(quizId)
       quizHandlers.resetTextAnswers()
     } catch (error) {
       console.error('Failed to load quiz:', error)
@@ -45,7 +45,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.createNewDeck(deckName)
+      await library.createNewDeck(deckName)
     } catch (error) {
       console.error('Failed to create deck:', error)
       throw error
@@ -58,7 +58,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.createNewQuiz(deckId, quizName)
+      await library.createNewQuiz(deckId, quizName)
     } catch (error) {
       console.error('Failed to create quiz:', error)
       throw error
@@ -71,11 +71,10 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.deleteDeck(deckId)
+      await library.deleteDeck(deckId)
       
-      if (quizState.currentDeckId === deckId) {
+      if (library.currentDeckId === deckId) {
         quizHandlers.resetTextAnswers()
-        setEditingDeckId(null)
       }
     } catch (error) {
       console.error('Failed to delete deck:', error)
@@ -88,9 +87,9 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.deleteQuizById(quizId)
+      await library.deleteQuizById(quizId)
       
-      if (quizState.currentQuizId === quizId) {
+      if (library.currentQuizId === quizId) {
         quizHandlers.resetTextAnswers()
       }
     } catch (error) {
@@ -104,7 +103,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.updateDeckInfo(deckId, updates)
+      await library.updateDeckInfo(deckId, updates)
     } catch (error) {
       console.error('Failed to update deck:', error)
     } finally {
@@ -116,7 +115,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.updateQuizInfo(quizId, updates)
+      await library.updateQuizInfo(quizId, updates)
     } catch (error) {
       console.error('Failed to update quiz:', error)
     } finally {
@@ -128,7 +127,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.updateQuizQuestion(questionId, updates)
+      await library.updateQuizQuestion(questionId, updates)
     } catch (error) {
       console.error('Failed to update question:', error)
     } finally {
@@ -140,7 +139,7 @@ export default function CreateDeckPage() {
     setDeckLoading(true)
     
     try {
-      await quizState.deleteQuizQuestion(questionId)
+      await library.deleteQuizQuestion(questionId)
     } catch (error) {
       console.error('Failed to delete question:', error)
     } finally {
@@ -154,11 +153,11 @@ export default function CreateDeckPage() {
     try {
       // Update order for each question
       for (let i = 0; i < newQuestions.length; i++) {
-        await quizState.updateQuizQuestion(newQuestions[i].id, { order: i })
+        await library.updateQuizQuestion(newQuestions[i].id, { order: i })
       }
       // Reload questions to get updated order
-      if (quizState.currentQuizId) {
-        await quizState.loadQuizQuestions(quizState.currentQuizId)
+      if (library.currentQuizId) {
+        await library.loadQuizQuestions(library.currentQuizId)
       }
     } catch (error) {
       console.error('Failed to reorder questions:', error)
@@ -167,29 +166,23 @@ export default function CreateDeckPage() {
     }
   }
 
-  const handleEditDeck = (deckId) => {
-    setEditingDeckId(deckId)
-    handleLoadDeck(deckId)
-  }
-
   const handleCreateNew = () => {
-    setEditingDeckId(null)
-    quizState.setQuiz([])
-    quizState.setAnswers([])
-    quizState.setIdx(0)
-    quizState.setCurrentDeckId(null)
-    quizState.setRawJson('')
-    quizState.setInputError('')
+    session.setQuiz([])
+    session.setAnswers([])
+    session.setIdx(0)
+    library.setCurrentDeckId(null)
+    library.setRawJson('')
+    library.setInputError('')
   }
 
   const handleStartQuiz = () => {
-    if (quizState.startQuiz()) {
+    if (library.startQuiz()) {
       navigate('/quiz')
     }
   }
 
-  const pageTitle = quizState.currentQuizId ? 'Edit quiz' : 'Create quiz'
-  const pageSubtitle = quizState.currentQuizId
+  const pageTitle = library.currentQuizId ? 'Edit quiz' : 'Create quiz'
+  const pageSubtitle = library.currentQuizId
     ? 'Modify questions in the JSON editor or use the list below.'
     : 'Pick a deck and quiz on the left, or paste JSON to start.'
 
@@ -198,10 +191,10 @@ export default function CreateDeckPage() {
       <div className="mb-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{pageTitle}</h1>
-          {quizState.currentQuizId && quizState.quiz.length > 0 && (
+          {library.currentQuizId && session.quiz.length > 0 && (
             <p className="text-sm text-slate-500">
-              {quizState.quiz.length} question{quizState.quiz.length === 1 ? '' : 's'}
-              {quizState.preview.ok ? ' · JSON preview valid' : ''}
+              {session.quiz.length} question{session.quiz.length === 1 ? '' : 's'}
+              {library.preview.ok ? ' · JSON preview valid' : ''}
             </p>
           )}
         </div>
@@ -212,11 +205,11 @@ export default function CreateDeckPage() {
         {/* Left Column - Deck Browser */}
         <div className="xl:col-span-3">
           <FolderDeckBrowser
-            savedDecks={quizState.savedDecks}
-            deckQuizzes={quizState.deckQuizzes}
-            selectedDeckForQuiz={quizState.selectedDeckForQuiz}
-            currentDeckId={quizState.currentDeckId}
-            currentQuizId={quizState.currentQuizId}
+            savedDecks={library.savedDecks}
+            deckQuizzes={library.deckQuizzes}
+            selectedDeckForQuiz={library.selectedDeckForQuiz}
+            currentDeckId={library.currentDeckId}
+            currentQuizId={library.currentQuizId}
             onLoadDeck={handleLoadDeck}
             onLoadQuiz={handleLoadQuiz}
             onCreateDeck={handleCreateDeck}
@@ -226,10 +219,10 @@ export default function CreateDeckPage() {
             onUpdateDeck={handleUpdateDeck}
             onUpdateQuiz={handleUpdateQuiz}
             deckLoading={deckLoading}
-            isCreatingDeck={quizState.isCreatingDeck}
-            isCreatingQuiz={quizState.isCreatingQuiz}
-            setIsCreatingDeck={quizState.setIsCreatingDeck}
-            setIsCreatingQuiz={quizState.setIsCreatingQuiz}
+            isCreatingDeck={library.isCreatingDeck}
+            isCreatingQuiz={library.isCreatingQuiz}
+            setIsCreatingDeck={library.setIsCreatingDeck}
+            setIsCreatingQuiz={library.setIsCreatingQuiz}
           />
         </div>
 
@@ -248,17 +241,17 @@ export default function CreateDeckPage() {
                   </svg>
                   <span>New quiz</span>
                 </button>
-                {quizState.currentQuizId && (
+                {library.currentQuizId && (
                   <button
                     type="button"
                     onClick={() =>
-                      quizState.addQuestionsToQuiz(
-                        quizState.currentQuizId,
-                        quizState.selectedDeckForQuiz,
-                        quizState.preview.value,
+                      library.addQuestionsToQuiz(
+                        library.currentQuizId,
+                        library.selectedDeckForQuiz,
+                        library.preview.value,
                       )
                     }
-                    disabled={!quizState.preview.ok || deckLoading}
+                    disabled={!library.preview.ok || deckLoading}
                     className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,7 +259,7 @@ export default function CreateDeckPage() {
                     </svg>
                     <span>Add questions</span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                      {quizState.preview.value?.length || 0}
+                      {library.preview.value?.length || 0}
                     </span>
                   </button>
                 )}
@@ -274,16 +267,16 @@ export default function CreateDeckPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={quizState.formatJson}
-                  disabled={!quizState.rawJson.trim()}
+                  onClick={library.formatJson}
+                  disabled={!library.rawJson.trim()}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <span>Format</span>
                 </button>
                 <button
                   type="button"
-                  onClick={quizState.clearQuiz}
-                  disabled={!quizState.rawJson.trim()}
+                  onClick={library.clearQuiz}
+                  disabled={!library.rawJson.trim()}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <span>Clear</span>
@@ -300,7 +293,7 @@ export default function CreateDeckPage() {
               </div>
               <button
                 type="button"
-                onClick={quizState.loadSample}
+                onClick={library.loadSample}
                 className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Load sample
@@ -314,29 +307,29 @@ export default function CreateDeckPage() {
                 </label>
                 <textarea
                   id="quiz-json"
-                  value={quizState.rawJson}
+                  value={library.rawJson}
                   onChange={(event) => {
-                    quizState.setRawJson(event.target.value)
-                    if (quizState.inputError) quizState.setInputError('')
+                    library.setRawJson(event.target.value)
+                    if (library.inputError) library.setInputError('')
                   }}
                   placeholder={sampleJson}
                   spellCheck={false}
-                  aria-invalid={Boolean(quizState.inputError)}
+                  aria-invalid={Boolean(library.inputError)}
                   className="h-80 w-full resize-y rounded-lg border border-slate-300 bg-slate-900 p-4 font-mono text-[12px] leading-6 text-slate-50 shadow-inner outline-none placeholder:text-slate-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/30"
                 />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div aria-live="polite" className="flex min-w-0 items-center gap-2">
-                  {quizState.inputError ? (
+                  {library.inputError ? (
                     <div className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
-                      <span>{quizState.inputError}</span>
+                      <span>{library.inputError}</span>
                     </div>
-                  ) : quizState.rawJson.trim() && quizState.preview.ok ? (
+                  ) : library.rawJson.trim() && library.preview.ok ? (
                     <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
                       <span>
-                        Ready · {quizState.preview.value.length} question
-                        {quizState.preview.value.length === 1 ? '' : 's'}
+                        Ready · {library.preview.value.length} question
+                        {library.preview.value.length === 1 ? '' : 's'}
                       </span>
                     </div>
                   ) : null}
@@ -345,10 +338,10 @@ export default function CreateDeckPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (quizState.preview.ok) {
-                        quizState.setInputError('')
+                      if (library.preview.ok) {
+                        library.setInputError('')
                       } else {
-                        quizState.setInputError(quizState.preview.error || 'Failed to parse input')
+                        library.setInputError(library.preview.error || 'Failed to parse input')
                       }
                     }}
                     className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
@@ -358,7 +351,7 @@ export default function CreateDeckPage() {
                   <button
                     type="button"
                     onClick={handleStartQuiz}
-                    disabled={!quizState.preview.ok}
+                    disabled={!library.preview.ok}
                     className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <span>Start quiz</span>
@@ -368,7 +361,7 @@ export default function CreateDeckPage() {
             </div>
           </div>
 
-          {quizState.currentQuizId && quizState.quiz.length > 0 && (
+          {library.currentQuizId && session.quiz.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <div>
@@ -376,11 +369,11 @@ export default function CreateDeckPage() {
                   <p className="text-sm text-slate-500">Reorder, edit, or remove cards in this quiz.</p>
                 </div>
                 <div className="ml-auto rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                  {quizState.quiz.length} total
+                  {session.quiz.length} total
                 </div>
               </div>
               <QuestionEditor
-                questions={quizState.quiz}
+                questions={session.quiz}
                 onUpdateQuestion={handleUpdateQuestion}
                 onDeleteQuestion={handleDeleteQuestion}
                 onReorderQuestions={handleReorderQuestions}
@@ -391,25 +384,25 @@ export default function CreateDeckPage() {
         </div>
 
         <div className="xl:col-span-3 space-y-5">
-          {quizState.currentQuizId && (
+          {library.currentQuizId && (
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h3 className="text-xs font-medium uppercase tracking-wide text-slate-500">This quiz</h3>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-600">Questions</dt>
-                  <dd className="font-semibold text-slate-900">{quizState.quiz.length}</dd>
+                  <dd className="font-semibold text-slate-900">{session.quiz.length}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <dt className="text-slate-600">Status</dt>
                   <dd>
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        quizState.quiz.length > 0
+                        session.quiz.length > 0
                           ? 'bg-emerald-50 text-emerald-800'
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {quizState.quiz.length > 0 ? 'Ready' : 'Empty'}
+                      {session.quiz.length > 0 ? 'Ready' : 'Empty'}
                     </span>
                   </dd>
                 </div>
@@ -430,7 +423,7 @@ export default function CreateDeckPage() {
               </svg>
             </summary>
             <div className="space-y-6 border-t border-slate-100 p-4 text-sm leading-relaxed text-slate-700">
-              {quizState.currentQuizId ? (
+              {library.currentQuizId ? (
                 <ul className="list-inside list-disc space-y-2">
                   <li>Add questions with &quot;Add questions&quot; only after the JSON preview is valid.</li>
                   <li>Use JSON or import flows; type markers are documented below.</li>
@@ -479,7 +472,7 @@ export default function CreateDeckPage() {
                 </div>
               </div>
 
-              {!quizState.currentQuizId && (
+              {!library.currentQuizId && (
                 <div>
                   <h4 className="mb-3 font-semibold text-slate-900">Markdown in stems</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">

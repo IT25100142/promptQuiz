@@ -1,4 +1,6 @@
 // IndexedDB utility functions for deck storage
+import { validateLibrarySnapshot, validateQuizQuestions } from '../schemas/quizQuestions.js'
+
 const DB_NAME = 'PromptQuizDB'
 const DB_VERSION = 2 // Increment version for schema upgrade
 
@@ -768,6 +770,77 @@ async function deleteReviewSchedule(deckId) {
   }
 }
 
+async function exportLibrarySnapshot() {
+  const decks = await getAllDecks()
+  const snapshot = {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    decks: [],
+  }
+
+  for (const deck of decks) {
+    const quizzes = await getQuizzesByDeckId(deck.id)
+    const deckEntry = {
+      name: deck.name,
+      description: deck.description || '',
+      date: deck.date,
+      quizzes: [],
+    }
+    for (const quiz of quizzes) {
+      const rawQuestions = await getQuestionsByQuizId(quiz.id)
+      const questions = rawQuestions.map(({ id: _id, quizId: _qid, deckId: _did, order: _o, date: _dt, ...rest }) => rest)
+      deckEntry.quizzes.push({
+        name: quiz.name,
+        description: quiz.description || '',
+        date: quiz.date,
+        questions,
+      })
+    }
+    snapshot.decks.push(deckEntry)
+  }
+  return snapshot
+}
+
+async function importLibrarySnapshot(json, { mode = 'replace' } = {}) {
+  const validatedSnap = validateLibrarySnapshot(json)
+  if (!validatedSnap.ok) {
+    throw new Error(validatedSnap.error)
+  }
+
+  if (mode === 'replace') {
+    const existing = await getAllDecks()
+    for (const d of existing) {
+      await deleteDeck(d.id)
+    }
+    await clearLastUsedDeckId()
+  }
+
+  for (const deck of validatedSnap.value.decks) {
+    const deckId = await createDeck(deck.name)
+    if (deck.description) {
+      try {
+        await updateDeck(deckId, { description: deck.description })
+      } catch {
+        /* ignore optional deck meta */
+      }
+    }
+    for (const quiz of deck.quizzes || []) {
+      const quizId = await createQuiz(deckId, quiz.name)
+      const qlist = quiz.questions || []
+      if (qlist.length === 0) {
+        continue
+      }
+      const v = validateQuizQuestions(qlist)
+      if (!v.ok) {
+        throw new Error(`Quiz "${quiz.name}": ${v.error}`)
+      }
+      if (v.value.length > 0) {
+        await addQuestions(quizId, deckId, v.value)
+      }
+    }
+  }
+}
+
 export {
   // Deck management
   createDeck,
@@ -805,5 +878,8 @@ export {
   getReviewSchedule,
   updateReviewSchedule,
   getDueReviews,
-  deleteReviewSchedule
+  deleteReviewSchedule,
+
+  exportLibrarySnapshot,
+  importLibrarySnapshot,
 }

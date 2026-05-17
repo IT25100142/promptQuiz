@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useQuizContext } from '../contexts/QuizContext.jsx'
+import { useQuizLibrary } from '../contexts/QuizContext.jsx'
 
 export default function Navigation() {
   const location = useLocation()
-  const { savedDecks } = useQuizContext()
+  const { savedDecks } = useQuizLibrary()
 
   const isActive = (path) => {
     return location.pathname === path

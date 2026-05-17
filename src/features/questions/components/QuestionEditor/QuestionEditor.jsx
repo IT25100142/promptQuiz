@@ -147,8 +147,14 @@ export default function QuestionEditor({
                 // Edit Mode
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Question</label>
+                    <label
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                      htmlFor={`qe-${question.id}-question`}
+                    >
+                      Question
+                    </label>
                     <textarea
+                      id={`qe-${question.id}-question`}
                       value={editingQuestion.question || ''}
                       onChange={(e) => handleQuestionChange('question', e.target.value)}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -158,8 +164,14 @@ export default function QuestionEditor({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                    <label
+                      className="block text-sm font-medium text-slate-700 mb-1"
+                      htmlFor={`qe-${question.id}-type`}
+                    >
+                      Type
+                    </label>
                     <select
+                      id={`qe-${question.id}-type`}
                       value={editingQuestion.type || 'multiple-choice'}
                       onChange={(e) => handleQuestionChange('type', e.target.value)}
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
@@ -174,8 +186,10 @@ export default function QuestionEditor({
 
                   {editingQuestion.type === 'multiple-choice' && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Options</label>
-                      <div className="space-y-2">
+                      <p id={`qe-${question.id}-options-legend`} className="block text-sm font-medium text-slate-700 mb-1">
+                        Options
+                      </p>
+                      <div className="space-y-2" role="group" aria-labelledby={`qe-${question.id}-options-legend`}>
                         {editingQuestion.options?.map((option, optionIndex) => (
                           <div key={optionIndex} className="flex gap-2 items-center">
                             <input
@@ -218,8 +232,14 @@ export default function QuestionEditor({
 
                   {(editingQuestion.type === 'fill-blank' || editingQuestion.type === 'short-answer' || editingQuestion.type === 'cloze') && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Correct Answer</label>
+                      <label
+                        className="block text-sm font-medium text-slate-700 mb-1"
+                        htmlFor={`qe-${question.id}-correct`}
+                      >
+                        Correct Answer
+                      </label>
                       <input
+                        id={`qe-${question.id}-correct`}
                         type="text"
                         value={editingQuestion.answer || ''}
                         onChange={(e) => handleQuestionChange('answer', e.target.value)}

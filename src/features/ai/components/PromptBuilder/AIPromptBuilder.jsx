@@ -11,7 +11,7 @@ export default function AIPromptBuilder({
   aiResponse,
   setAiResponse,
   parseMessage,
-  setParseMessage,
+  setParseMessage: _setParseMessage,
   onGeneratePrompt,
   onParseResponse,
   onCopyToClipboard

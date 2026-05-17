@@ -8,58 +8,57 @@ import {
 } from '../../../shared/services/indexedDB.js'
 import { loadQuestionsForDeck } from '../utils/deckQuestionLoader.js'
 
-/**
- * Initial deck list / last-used deck restore, plus save/load/delete deck helpers.
- */
 export function useQuizDeckSync({
-  hierarchy,
-  setSavedDecks,
-  setDecksLoadStatus,
-  setDecksLoadError,
-  setCurrentDeckId,
-  setQuiz,
-  setAnswers,
-  setIdx,
-  setInputError,
+  dispatch,
   quiz,
   currentDeckId,
   clearSessionTextState,
+  hierarchy,
+  selectedDeckForQuiz,
 }) {
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [dispatch],
+  )
+
   useEffect(() => {
     let cancelled = false
 
     const loadDecks = async () => {
-      setDecksLoadStatus('loading')
-      setDecksLoadError(null)
+      setState({ decksLoadStatus: 'loading', decksLoadError: null })
       try {
         const decks = await getAllDecks()
         if (cancelled) return
-        setSavedDecks(decks)
+        setState({ savedDecks: decks })
 
         const lastUsedId = await getLastUsedDeckId()
         if (!lastUsedId) {
-          setDecksLoadStatus('ready')
+          setState({ decksLoadStatus: 'ready' })
           return
         }
 
         const deck = await loadQuestionsForDeck(lastUsedId)
         if (cancelled) return
         if (!deck || deck.questions.length === 0) {
-          setDecksLoadStatus('ready')
+          setState({ decksLoadStatus: 'ready' })
           return
         }
 
-        setCurrentDeckId(lastUsedId)
-        setQuiz(deck.questions)
-        setAnswers(Array(deck.questions.length).fill(null))
-        setIdx(0)
-        hierarchy.setCurrentQuizId(deck.firstQuizId ?? null)
-        setDecksLoadStatus('ready')
+        setState({
+          currentDeckId: lastUsedId,
+          quiz: deck.questions,
+          answers: Array(deck.questions.length).fill(null),
+          idx: 0,
+          currentQuizId: deck.firstQuizId ?? null,
+          decksLoadStatus: 'ready',
+        })
       } catch (e) {
         if (cancelled) return
         console.error(e)
-        setDecksLoadError(e?.message || 'Failed to load decks')
-        setDecksLoadStatus('error')
+        setState({
+          decksLoadError: e?.message || 'Failed to load decks',
+          decksLoadStatus: 'error',
+        })
       }
     }
 
@@ -67,7 +66,7 @@ export function useQuizDeckSync({
     return () => {
       cancelled = true
     }
-  }, [hierarchy.setCurrentQuizId]) // eslint-disable-line react-hooks/exhaustive-deps -- mount + setCurrentQuizId only; omit hierarchy object (legacy useQuizState)
+  }, [setState])
 
   const saveCurrentDeck = useCallback(
     async (deckName) => {
@@ -81,48 +80,53 @@ export function useQuizDeckSync({
 
       const deckId = await saveDeck(quiz, deckName)
       await saveLastUsedDeckId(deckId)
-      setCurrentDeckId(deckId)
+      setState({ currentDeckId: deckId })
 
       const updatedDecks = await getAllDecks()
-      setSavedDecks(updatedDecks)
+      setState({ savedDecks: updatedDecks })
     },
-    [quiz, setCurrentDeckId, setSavedDecks],
+    [quiz, setState],
   )
 
   const loadDeck = useCallback(
     async (deckId) => {
       const { questions, firstQuizId } = await loadQuestionsForDeck(deckId)
       if (questions.length === 0) {
-        setInputError('This deck has no questions yet.')
+        setState({ inputError: 'This deck has no questions yet.' })
         return
       }
-      setCurrentDeckId(deckId)
-      setQuiz(questions)
-      setAnswers(Array(questions.length).fill(null))
-      setIdx(0)
+      setState({
+        currentDeckId: deckId,
+        quiz: questions,
+        answers: Array(questions.length).fill(null),
+        idx: 0,
+        currentQuizId: firstQuizId ?? null,
+      })
       clearSessionTextState()
-      hierarchy.setCurrentQuizId(firstQuizId ?? null)
     },
-    [hierarchy, clearSessionTextState, setCurrentDeckId, setQuiz, setAnswers, setIdx, setInputError],
+    [clearSessionTextState, setState],
   )
 
   const deleteDeckById = useCallback(
     async (deckId) => {
       await deleteDeck(deckId)
-      setSavedDecks((prev) => prev.filter((d) => d.id !== deckId))
-      if (hierarchy.selectedDeckForQuiz === deckId) {
-        hierarchy.setSelectedDeckForQuiz(null)
-        hierarchy.setDeckQuizzes([])
+      const updatedDecks = await getAllDecks()
+      setState({ savedDecks: updatedDecks })
+
+      if (selectedDeckForQuiz === deckId) {
+        setState({ selectedDeckForQuiz: null, deckQuizzes: [] })
       }
       if (currentDeckId === deckId) {
-        setCurrentDeckId(null)
-        setQuiz([])
-        setAnswers([])
-        setIdx(0)
+        setState({
+          currentDeckId: null,
+          quiz: [],
+          answers: [],
+          idx: 0,
+        })
         clearSessionTextState()
       }
     },
-    [currentDeckId, hierarchy, clearSessionTextState, setSavedDecks, setCurrentDeckId, setQuiz, setAnswers, setIdx],
+    [currentDeckId, selectedDeckForQuiz, clearSessionTextState, setState],
   )
 
   return { saveCurrentDeck, loadDeck, deleteDeckById }

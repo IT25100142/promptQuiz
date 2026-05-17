@@ -92,30 +92,27 @@ export function getScore(quiz, answers) {
     
     const question = quiz[idx]
     if (!question) return total
-    
-    let isCorrect = false
-    
-    switch (question.type) {
-      case 'multiple-choice':
-        isCorrect = answer === question.answerIndex
-        break
-      case 'true-false':
-        isCorrect = answer !== null && ((answer === 1 ? question.answer : !question.answer))
-        break
-      case 'fill-blank':
-      case 'cloze':
-        isCorrect = answer?.isCorrect === true
-        break
-      case 'short-answer':
-        isCorrect = answer?.selfAssessedCorrect === true
-        break
-      default:
-        // Legacy format
-        isCorrect = question.answerIndex === answer || 
-                   (question.type === 'fill-blank' && answer === question.answer) ||
-                   (question.type === 'cloze' && answer === question.answer)
-    }
-    
+
+    const isCorrect = (() => {
+      switch (question.type) {
+        case 'multiple-choice':
+          return answer === question.answerIndex
+        case 'true-false':
+          return answer !== null && (answer === 1 ? question.answer : !question.answer)
+        case 'fill-blank':
+        case 'cloze':
+          return answer?.isCorrect === true
+        case 'short-answer':
+          return answer?.selfAssessedCorrect === true
+        default:
+          return (
+            question.answerIndex === answer ||
+            (question.type === 'fill-blank' && answer === question.answer) ||
+            (question.type === 'cloze' && answer === question.answer)
+          )
+      }
+    })()
+
     return total + (isCorrect ? 1 : 0)
   }, 0)
 }
@@ -226,63 +223,197 @@ export function parseMarkdownFormat(text) {
   }
 }
 
+/** Blank-line separated blocks (AI prompt format: unnumbered MCQ, `[T/F]` without `1.`, etc.) */
+function parseTextFormatBlocks(text) {
+  const normalized = text.replace(/\r\n/g, '\n').trim()
+  if (!normalized) {
+    return { ok: false, error: 'No valid questions found in text format' }
+  }
+
+  const blocks = normalized
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean)
+  const questions = []
+
+  for (const block of blocks) {
+    const blockLines = block
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (blockLines.length === 0) continue
+
+    const head = blockLines[0].replace(/^\d+\.\s*/, '')
+    let q = null
+    if (/^\[T\/F\]/i.test(head)) q = parseTrueFalseBlock(blockLines)
+    else if (/^\[FIB\]/i.test(head)) q = parseFillBlankBlock(blockLines)
+    else if (/^\[CLOZE\]/i.test(head)) q = parseClozeBlock(blockLines)
+    else if (/^\[SA\]/i.test(head)) q = parseShortAnswerBlock(blockLines)
+    else if (blockLines.length >= 2 && /^[A-E]\.\s/i.test(blockLines[1])) {
+      q = parseMultipleChoiceBlock(blockLines)
+    }
+
+    if (q) questions.push(q)
+  }
+
+  return questions.length > 0
+    ? { ok: true, value: questions }
+    : { ok: false, error: 'No valid questions found in text format' }
+}
+
+function normalizeFibUnderscores(questionText) {
+  return questionText.replace(/_{2,}/g, '___')
+}
+
+function parseTrueFalseBlock(blockLines) {
+  const first = blockLines[0].replace(/^\d+\.\s*/, '').trim()
+  const m = first.match(/^\[T\/F\]\s*(.+)$/i)
+  if (!m) return null
+  const question = { type: 'true-false', question: m[1].trim(), answer: true }
+  for (let i = 1; i < blockLines.length; i++) {
+    const line = blockLines[i]
+    if (line.startsWith('*')) {
+      const answer = line.substring(1).trim().toLowerCase()
+      question.answer = answer === 'true' || answer === 't'
+      break
+    }
+  }
+  return question
+}
+
+function parseFillBlankBlock(blockLines) {
+  const first = blockLines[0].replace(/^\d+\.\s*/, '').trim()
+  const m = first.match(/^\[FIB\]\s*(.+)$/i)
+  if (!m) return null
+  const question = {
+    type: 'fill-blank',
+    question: normalizeFibUnderscores(m[1].trim()),
+    answers: [],
+  }
+  for (let i = 1; i < blockLines.length; i++) {
+    const line = blockLines[i]
+    if (line.startsWith('*')) {
+      question.answers = [line.substring(1).trim()]
+      return question
+    }
+  }
+  return null
+}
+
+function parseClozeBlock(blockLines) {
+  return parseCloze(blockLines, 0)
+}
+
+function parseShortAnswerBlock(blockLines) {
+  return parseShortAnswer(blockLines, 0)
+}
+
+function parseMultipleChoiceBlock(blockLines) {
+  const question = {
+    type: 'multiple-choice',
+    question: '',
+    options: [],
+    answer: '',
+    answerIndex: 0,
+  }
+  question.question = blockLines[0].replace(/^\d+\.\s*/, '').trim()
+  let foundAnswer = false
+  for (let i = 1; i < blockLines.length; i++) {
+    const line = blockLines[i]
+    if (/^[A-E]\.\s*/i.test(line)) {
+      question.options.push(line.replace(/^[A-E]\.\s*/i, '').trim())
+    } else if (line.startsWith('*')) {
+      const answer = line.substring(1).trim()
+      question.answer = answer
+      foundAnswer = true
+      if (/^[A-E]$/i.test(answer)) {
+        const answerIndex = answer.toUpperCase().charCodeAt(0) - 65
+        question.answerIndex =
+          answerIndex < question.options.length ? answerIndex : 0
+      } else {
+        const answerIndex = question.options.findIndex(
+          (opt) => opt.toLowerCase() === answer.toLowerCase(),
+        )
+        if (answerIndex !== -1) {
+          question.answerIndex = answerIndex
+        } else {
+          question.answerIndex = question.options.length
+          question.options.push(answer)
+        }
+      }
+      break
+    }
+  }
+  if (!foundAnswer && question.options.length > 0) {
+    question.answer = question.options[0]
+    question.answerIndex = 0
+  }
+  return question.options.length >= 2 ? question : null
+}
+
+function isTextQuestionDelimiter(line) {
+  const t = line.trim()
+  return /^\d+\./.test(t) || /^(?:\d+\.\s*)?\[(T\/F|FIB|CLOZE|SA)\]/i.test(t)
+}
+
 // Parse text format (supports multiple question types)
 export function parseTextFormat(text) {
   try {
-    const lines = text.split('\n').filter(line => line.trim())
+    const fromBlocks = parseTextFormatBlocks(text)
+    if (fromBlocks.ok) return fromBlocks
+
+    const lines = text.split('\n').filter((line) => line.trim())
     const questions = []
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      
-      // Skip empty lines and continue if we can't parse
+
       if (!line) continue
-      
+
       let question = null
-      
-      // True/False
-      if (/^\d+\.\s*\[T\/F\]/i.test(line)) {
+
+      if (/^(?:\d+\.\s*)?\[T\/F\]/i.test(line)) {
         question = parseTrueFalse(lines, i)
         if (question) {
           questions.push(question)
-          i += question.linesConsumed - 1 // Skip processed lines
+          i += question.linesConsumed - 1
         }
-      }
-      // Fill in Blank
-      else if (/^\d+\.\s*\[FIB\]/i.test(line)) {
+      } else if (/^(?:\d+\.\s*)?\[FIB\]/i.test(line)) {
         question = parseFillBlank(lines, i)
         if (question) {
           questions.push(question)
           i += question.linesConsumed - 1
         }
-      }
-      // Cloze Deletion
-      else if (/^\d+\.\s*\[CLOZE\]/i.test(line)) {
+      } else if (/^(?:\d+\.\s*)?\[CLOZE\]/i.test(line)) {
         question = parseCloze(lines, i)
         if (question) {
           questions.push(question)
           i += question.linesConsumed - 1
         }
-      }
-      // Short Answer
-      else if (/^\d+\.\s*\[SA\]/i.test(line)) {
+      } else if (/^(?:\d+\.\s*)?\[SA\]/i.test(line)) {
         question = parseShortAnswer(lines, i)
         if (question) {
           questions.push(question)
           i += question.linesConsumed - 1
         }
-      }
-      // Multiple Choice (default, no marker)
-      else if (/^\d+\./.test(line)) {
+      } else if (/^\d+\./.test(line)) {
         question = parseMultipleChoice(lines, i)
         if (question) {
           questions.push(question)
-          i += question.linesConsumed - 1 // Skip processed lines
+          i += question.linesConsumed - 1
+        }
+      } else if (i + 1 < lines.length && /^[A-E]\.\s/i.test(lines[i + 1].trim())) {
+        question = parseMultipleChoice(lines, i)
+        if (question) {
+          questions.push(question)
+          i += question.linesConsumed - 1
         }
       }
     }
-    
-    return questions.length > 0 ? { ok: true, value: questions } : { ok: false, error: 'No valid questions found in text format' }
+
+    return questions.length > 0
+      ? { ok: true, value: questions }
+      : { ok: false, error: 'No valid questions found in text format' }
   } catch (error) {
     return { ok: false, error: 'Failed to parse text format' }
   }
@@ -307,13 +438,13 @@ export function parseMultipleChoice(lines, startIndex) {
   i++
   
   // Parse options
-  while (i < lines.length && !/^\d+\./.test(lines[i])) {
+  while (i < lines.length && !isTextQuestionDelimiter(lines[i])) {
     const line = lines[i].trim()
     if (!line) {
       i++
       continue
     }
-    
+
     if (/^[A-D]\.\s*/.test(line)) {
       // Option with letter prefix
       const option = line.replace(/^[A-D]\.\s*/, '')
@@ -323,7 +454,7 @@ export function parseMultipleChoice(lines, startIndex) {
       const answer = line.substring(1).trim()
       question.answer = answer
       foundAnswer = true
-      
+
       // Check if answer is a single letter (A, B, C, D)
       if (/^[A-D]$/i.test(answer)) {
         const answerIndex = answer.toUpperCase().charCodeAt(0) - 65 // A=0, B=1, C=2, D=3
@@ -334,8 +465,8 @@ export function parseMultipleChoice(lines, startIndex) {
         }
       } else {
         // Check if answer matches option text
-        const answerIndex = question.options.findIndex(opt => 
-          opt.toLowerCase() === answer.toLowerCase()
+        const answerIndex = question.options.findIndex((opt) =>
+          opt.toLowerCase() === answer.toLowerCase(),
         )
         if (answerIndex !== -1) {
           question.answerIndex = answerIndex
@@ -344,11 +475,13 @@ export function parseMultipleChoice(lines, startIndex) {
           question.options.push(answer)
         }
       }
+      i++
+      break
     } else if (question.options.length < 4) {
       // Option without letter prefix
       question.options.push(line)
     }
-    
+
     i++
   }
   
@@ -374,12 +507,12 @@ export function parseTrueFalse(lines, startIndex) {
   let i = startIndex
   
   // Parse question line
-  const questionLine = lines[i].replace(/^\d+\.\s*\[T\/F\]\s*/i, '')
+  const questionLine = lines[i].trim().replace(/^(?:\d+\.\s*)?\[T\/F\]\s*/i, '')
   question.question = questionLine
   i++
-  
+
   // Look for answer
-  while (i < lines.length && !/^\d+\./.test(lines[i])) {
+  while (i < lines.length && !isTextQuestionDelimiter(lines[i])) {
     const line = lines[i].trim()
     if (line.startsWith('*')) {
       const answer = line.substring(1).trim().toLowerCase()
@@ -404,12 +537,12 @@ export function parseFillBlank(lines, startIndex) {
   let i = startIndex
   
   // Parse question line
-  const questionLine = lines[i].replace(/^\d+\.\s*\[FIB\]\s*/i, '')
-  question.question = questionLine.replace('___', '___') // Ensure blank format
+  const questionLine = lines[i].trim().replace(/^(?:\d+\.\s*)?\[FIB\]\s*/i, '')
+  question.question = normalizeFibUnderscores(questionLine)
   i++
-  
+
   // Look for answer
-  while (i < lines.length && !/^\d+\./.test(lines[i])) {
+  while (i < lines.length && !isTextQuestionDelimiter(lines[i])) {
     const line = lines[i].trim()
     if (line.startsWith('*')) {
       const answer = line.substring(1).trim()
@@ -434,12 +567,12 @@ export function parseCloze(lines, startIndex) {
   let i = startIndex
   
   // Parse question line
-  const questionLine = lines[i].replace(/^\d+\.\s*\[CLOZE\]\s*/i, '')
+  const questionLine = lines[i].trim().replace(/^(?:\d+\.\s*)?\[CLOZE\]\s*/i, '')
   question.question = questionLine
   i++
-  
+
   // Look for answers
-  while (i < lines.length && !/^\d+\./.test(lines[i])) {
+  while (i < lines.length && !isTextQuestionDelimiter(lines[i])) {
     const line = lines[i].trim()
     if (line.startsWith('*')) {
       const answersText = line.substring(1).trim()
@@ -494,7 +627,14 @@ export function parseCloze(lines, startIndex) {
     
     question.question = modifiedQuestion
   }
-  
+
+  if (question.answers.length > 0 && !question.question.includes('{')) {
+    let ph = 0
+    question.question = question.question.replace(/_{2,}/g, () =>
+      ph < question.answers.length ? `{${ph++}}` : '___',
+    )
+  }
+
   question.linesConsumed = i - startIndex
   return question.answers.length > 0 ? question : null
 }
@@ -510,12 +650,12 @@ export function parseShortAnswer(lines, startIndex) {
   let i = startIndex
   
   // Parse question line
-  const questionLine = lines[i].replace(/^\d+\.\s*\[SA\]\s*/i, '')
+  const questionLine = lines[i].trim().replace(/^(?:\d+\.\s*)?\[SA\]\s*/i, '')
   question.question = questionLine
   i++
-  
+
   // Look for suggested answer
-  while (i < lines.length && !/^\d+\./.test(lines[i])) {
+  while (i < lines.length && !isTextQuestionDelimiter(lines[i])) {
     const line = lines[i].trim()
     if (line.startsWith('*')) {
       question.suggestedAnswer = line.substring(1).trim()

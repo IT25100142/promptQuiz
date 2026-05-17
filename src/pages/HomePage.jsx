@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useQuizContext } from '../contexts/QuizContext.jsx'
+import { useQuizLibrary } from '../contexts/QuizContext.jsx'
 
 export default function HomePage() {
-  const { savedDecks } = useQuizContext()
+  const { savedDecks } = useQuizLibrary()
 
   return (
     <div className="flex-1">

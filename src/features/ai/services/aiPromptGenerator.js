@@ -1,3 +1,5 @@
+import { safeParseQuizJson } from '../../../shared/utils/helpers.js'
+
 export function generateAIPrompt({ studyNotes, selectedQuestionTypes, numberOfQuestions, topicInstructions }) {
   const selectedTypes = Object.entries(selectedQuestionTypes)
     .filter(([_, selected]) => selected)
@@ -82,14 +84,14 @@ Requirements:
   return prompt
 }
 
-export function parseAIResponse(aiResponse, quizState) {
+export function parseAIResponse(aiResponse) {
   if (!aiResponse.trim()) {
     return { error: 'Please paste AI response first' }
   }
 
   // Clean up AI response - remove common AI prefixes/suffixes
   let cleanedResponse = aiResponse.trim()
-  
+
   // Remove common AI introductory phrases
   const introPatterns = [
     /^Here are your questions?:?\s*/i,
@@ -98,32 +100,30 @@ export function parseAIResponse(aiResponse, quizState) {
     /^Sure, here are the questions?:?\s*/i,
     /^Certainly, here are the questions?:?\s*/i,
   ]
-  
-  introPatterns.forEach(pattern => {
+
+  introPatterns.forEach((pattern) => {
     cleanedResponse = cleanedResponse.replace(pattern, '')
   })
-  
+
   // Remove common AI concluding phrases
   const outroPatterns = [
     /\s*I hope this helps!?\s*$/i,
     /\s*Let me know if you need anything else!\s*$/i,
     /\s*Feel free to ask if you need more questions!\s*$/i,
   ]
-  
-  outroPatterns.forEach(pattern => {
+
+  outroPatterns.forEach((pattern) => {
     cleanedResponse = cleanedResponse.replace(pattern, '')
   })
 
-  const parsed = quizState.preview || quizState.safeParseQuizJson?.(cleanedResponse)
-  
+  const parsed = safeParseQuizJson(cleanedResponse)
+
   if (parsed?.ok) {
     return { success: true, questions: parsed.value }
-  } else {
-    // Try to extract partial questions for better error reporting
-    const lines = cleanedResponse.split('\n').filter(line => line.trim())
-    const questionCount = lines.filter(line => /^\d+\./.test(line)).length
-    return { 
-      error: `Could not parse AI response. Found ${questionCount} potential questions. Error: ${parsed?.error || 'Unknown error'}` 
-    }
+  }
+  const lines = cleanedResponse.split('\n').filter((line) => line.trim())
+  const questionCount = lines.filter((line) => /^\d+\./.test(line)).length
+  return {
+    error: `Could not parse AI response. Found ${questionCount} potential questions. Error: ${parsed?.error || 'Unknown error'}`,
   }
 }

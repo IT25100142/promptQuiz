@@ -1,21 +1,21 @@
 /**
- * Compatibility layer: quiz interaction handlers live on {@link useQuiz} state.
- * Keeps the `useQuizHandlers(quizState)` call shape used by pages.
+ * Quiz interaction handlers from the session slice returned by {@link useQuizSession}.
+ * Pages call `useQuizHandlers(session)` (same field names as the former combined quiz state).
  */
-export function useQuizHandlers(quizState) {
+export function useQuizHandlers(session) {
   return {
-    textAnswers: quizState.textAnswers,
-    showSuggestedAnswer: quizState.showSuggestedAnswer,
-    handleTextAnswer: quizState.handleTextAnswer,
-    submitTextAnswer: quizState.submitTextAnswer,
-    toggleSuggestedAnswer: quizState.toggleSuggestedAnswer,
-    handleSelfAssessment: quizState.handleSelfAssessment,
-    isAnswered: quizState.isAnswered,
-    goPrevious: quizState.goPrevious,
-    goNext: quizState.goNext,
-    restartSession: quizState.restartSession,
-    startReviewMistakes: quizState.startReviewMistakes,
-    editQuiz: quizState.prepareForEdit,
-    resetTextAnswers: quizState.resetTextAnswers,
+    textAnswers: session.textAnswers,
+    showSuggestedAnswer: session.showSuggestedAnswer,
+    handleTextAnswer: session.handleTextAnswer,
+    submitTextAnswer: session.submitTextAnswer,
+    toggleSuggestedAnswer: session.toggleSuggestedAnswer,
+    handleSelfAssessment: session.handleSelfAssessment,
+    isAnswered: session.isAnswered,
+    goPrevious: session.goPrevious,
+    goNext: session.goNext,
+    restartSession: session.restartSession,
+    startReviewMistakes: session.startReviewMistakes,
+    editQuiz: session.prepareForEdit,
+    resetTextAnswers: session.resetTextAnswers,
   }
 }

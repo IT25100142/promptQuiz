@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useQuizContext } from '../contexts/QuizContext.jsx'
+import { useQuizLibrary, useQuizSession, useQuizShell } from '../contexts/QuizContext.jsx'
 import { generateAIPrompt, parseAIResponse } from '../features/ai/services/aiPromptGenerator.js'
+import { validateQuizQuestions } from '../shared/schemas/quizQuestions.js'
 import Header from '../features/ui/layout/Header.jsx'
 import Navigation from './Navigation.jsx'
 import SaveDeckModal from './SaveDeckModal.jsx'
@@ -10,17 +11,20 @@ import AIPromptBuilder from '../features/ai/components/PromptBuilder/AIPromptBui
 
 export default function Layout({ children }) {
   const location = useLocation()
-  const quizState = useQuizContext()
-  
+  const session = useQuizSession()
+  const library = useQuizLibrary()
+  const shell = useQuizShell()
+  const { appNotice, setAppNotice } = shell
+
   const [showSavedDecks, setShowSavedDecks] = useState(false)
   const [showSaveDeck, setShowSaveDeck] = useState(false)
   const [deckLoading, setDeckLoading] = useState(false)
 
   useEffect(() => {
-    if (!quizState.appNotice) return
-    const t = setTimeout(() => quizState.setAppNotice(null), 6000)
+    if (!appNotice) return
+    const t = setTimeout(() => setAppNotice(null), 6000)
     return () => clearTimeout(t)
-  }, [quizState.appNotice, quizState.setAppNotice])
+  }, [appNotice, setAppNotice])
 
   const handleSaveDeck = async (deckName, setSaveError) => {
     if (!deckName.trim()) {
@@ -28,7 +32,7 @@ export default function Layout({ children }) {
       return
     }
 
-    if (quizState.quiz.length === 0) {
+    if (session.quiz.length === 0) {
       setSaveError('No quiz data to save')
       return
     }
@@ -37,7 +41,7 @@ export default function Layout({ children }) {
     setSaveError('')
 
     try {
-      await quizState.saveCurrentDeck(deckName.trim())
+      await library.saveCurrentDeck(deckName.trim())
       setShowSaveDeck(false)
     } catch (error) {
       setSaveError(error.message)
@@ -48,13 +52,13 @@ export default function Layout({ children }) {
 
   const handleLoadDeck = async (deckId) => {
     setDeckLoading(true)
-    
+
     try {
-      await quizState.loadDeck(deckId)
+      await library.loadDeck(deckId)
       setShowSavedDecks(false)
     } catch (error) {
       console.error('Failed to load deck:', error)
-      quizState.setAppNotice({
+      shell.setAppNotice({
         tone: 'error',
         message: error?.message || 'Failed to load deck.',
       })
@@ -69,12 +73,12 @@ export default function Layout({ children }) {
     }
 
     setDeckLoading(true)
-    
+
     try {
-      await quizState.deleteDeck(deckId)
+      await library.deleteDeck(deckId)
     } catch (error) {
       console.error('Failed to delete deck:', error)
-      quizState.setAppNotice({
+      shell.setAppNotice({
         tone: 'error',
         message: error?.message || 'Failed to delete deck.',
       })
@@ -86,36 +90,41 @@ export default function Layout({ children }) {
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text)
-      quizState.setParseMessage('Copied to clipboard!')
-      setTimeout(() => quizState.setParseMessage(''), 2000)
+      shell.setParseMessage('Copied to clipboard!')
+      setTimeout(() => shell.setParseMessage(''), 2000)
     } catch (_err) {
-      quizState.setParseMessage('Failed to copy to clipboard')
+      shell.setParseMessage('Failed to copy to clipboard')
     }
   }
 
   const handleAIPromptGeneration = (params) => {
     const prompt = generateAIPrompt(params)
     if (prompt.error) {
-      quizState.setParseMessage(prompt.error)
+      shell.setParseMessage(prompt.error)
       return ''
     }
-    quizState.setParseMessage('')
+    shell.setParseMessage('')
     return prompt
   }
 
   const handleParseAIResponse = ({ aiResponse }) => {
-    const result = parseAIResponse(aiResponse, quizState)
-    
+    const result = parseAIResponse(aiResponse)
+
     if (result.success) {
-      quizState.setQuiz(result.questions)
-      quizState.setAnswers(Array(result.questions.length).fill(null))
-      quizState.setIdx(0)
-      quizState.setCurrentDeckId(null)
-      quizState.setShowAIPromptBuilder(false)
-      quizState.setIsReviewMode(false)
-      quizState.setParseMessage(`Successfully loaded ${result.questions.length} questions`)
+      const validated = validateQuizQuestions(result.questions)
+      if (!validated.ok) {
+        shell.setParseMessage(validated.error)
+        return
+      }
+      session.setQuiz(validated.value)
+      session.setAnswers(Array(validated.value.length).fill(null))
+      session.setIdx(0)
+      library.setCurrentDeckId(null)
+      shell.setShowAIPromptBuilder(false)
+      session.setIsReviewMode(false)
+      shell.setParseMessage(`Successfully loaded ${validated.value.length} questions`)
     } else {
-      quizState.setParseMessage(result.error)
+      shell.setParseMessage(result.error)
     }
   }
 
@@ -123,49 +132,49 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50 text-slate-950">
       <Navigation />
 
-      {quizState.decksLoadStatus === 'error' && quizState.decksLoadError && (
+      {library.decksLoadStatus === 'error' && library.decksLoadError && (
         <div className="mx-auto max-w-7xl px-4 pt-2 sm:px-6 lg:px-8">
           <div
             role="alert"
             className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900"
           >
-            {quizState.decksLoadError}
+            {library.decksLoadError}
           </div>
         </div>
       )}
 
-      {quizState.appNotice && (
+      {shell.appNotice && (
         <div className="mx-auto max-w-7xl px-4 pt-2 sm:px-6 lg:px-8">
           <div
             role="status"
             className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
-              quizState.appNotice.tone === 'error'
+              shell.appNotice.tone === 'error'
                 ? 'border-rose-200 bg-rose-50 text-rose-900'
-                : quizState.appNotice.tone === 'warning'
+                : shell.appNotice.tone === 'warning'
                   ? 'border-amber-200 bg-amber-50 text-amber-950'
                   : 'border-slate-200 bg-white text-slate-800'
             }`}
           >
-            <span>{quizState.appNotice.message}</span>
+            <span>{shell.appNotice.message}</span>
             <button
               type="button"
               className="shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              onClick={() => quizState.setAppNotice(null)}
+              onClick={() => shell.setAppNotice(null)}
             >
               Dismiss
             </button>
           </div>
         </div>
       )}
-      
+
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
         <Header
-          isSpacedRepetition={quizState.isSpacedRepetition}
-          toggleSpacedRepetition={quizState.toggleSpacedRepetition}
-          savedDecks={quizState.savedDecks}
-          showAIPromptBuilder={quizState.showAIPromptBuilder}
-          setShowAIPromptBuilder={quizState.setShowAIPromptBuilder}
-          startDailyReview={quizState.startDailyReview}
+          isSpacedRepetition={session.isSpacedRepetition}
+          toggleSpacedRepetition={session.toggleSpacedRepetition}
+          savedDecks={library.savedDecks}
+          showAIPromptBuilder={shell.showAIPromptBuilder}
+          setShowAIPromptBuilder={shell.setShowAIPromptBuilder}
+          startDailyReview={session.startDailyReview}
           onShowDecks={() => setShowSavedDecks(true)}
         />
 
@@ -173,11 +182,10 @@ export default function Layout({ children }) {
           {children}
         </main>
 
-        {/* Action buttons for quiz and results pages */}
         {(location.pathname === '/quiz' || location.pathname === '/results') && (
           <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-6 mt-6 bg-white/50 backdrop-blur-sm rounded-t-2xl px-6">
             <div className="flex gap-3">
-              {quizState.quiz.length > 0 && (
+              {session.quiz.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setShowSaveDeck(true)}
@@ -193,11 +201,10 @@ export default function Layout({ children }) {
           </div>
         )}
 
-        {/* Modals */}
         <SavedDecksModal
           showSavedDecks={showSavedDecks}
           setShowSavedDecks={setShowSavedDecks}
-          savedDecks={quizState.savedDecks}
+          savedDecks={library.savedDecks}
           onLoadDeck={handleLoadDeck}
           onDeleteDeck={handleDeleteDeck}
           deckLoading={deckLoading}
@@ -211,12 +218,12 @@ export default function Layout({ children }) {
         />
 
         <AIPromptBuilder
-          showAIPromptBuilder={quizState.showAIPromptBuilder}
-          setShowAIPromptBuilder={quizState.setShowAIPromptBuilder}
-          aiResponse={quizState.aiResponse}
-          setAiResponse={quizState.setAiResponse}
-          parseMessage={quizState.parseMessage}
-          setParseMessage={quizState.setParseMessage}
+          showAIPromptBuilder={shell.showAIPromptBuilder}
+          setShowAIPromptBuilder={shell.setShowAIPromptBuilder}
+          aiResponse={shell.aiResponse}
+          setAiResponse={shell.setAiResponse}
+          parseMessage={shell.parseMessage}
+          setParseMessage={shell.setParseMessage}
           onGeneratePrompt={handleAIPromptGeneration}
           onParseResponse={handleParseAIResponse}
           onCopyToClipboard={copyToClipboard}

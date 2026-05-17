@@ -1,9 +1,9 @@
-import { cx } from '../utils/helpers.js'
+import { cx } from '../shared/utils/helpers.js'
 
 export default function AnswerButton({ 
   option, 
-  optionIdx, 
-  isSelected, 
+  optionIdx: _optionIdx, 
+  isSelected: _isSelected, 
   isCorrect, 
   isWrongSelected, 
   answered, 

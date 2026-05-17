@@ -4,7 +4,7 @@ export default function Modal({
   title, 
   children, 
   className = '', 
-  ...props 
+  ..._unused
 }) {
   if (!isOpen) return null
 
