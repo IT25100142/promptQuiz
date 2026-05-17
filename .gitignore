@@ -25,3 +25,6 @@ dist-ssr
 
 # Markdown files
 *.md
+
+# Batch files
+start.bat
