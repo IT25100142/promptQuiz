@@ -50,39 +50,47 @@ export default function ResultsPage() {
     <div className="flex-1 max-w-2xl mx-auto w-full flex flex-col justify-center py-6">
       <div className="text-center mb-8 animate-fade-in">
         <span className="text-6xl">🎉</span>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 mt-4">Quiz Completed!</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">Excellent job finishing this recall practice block.</p>
+        <h1 className="font-serif text-5xl sm:text-6xl tracking-tight text-slate-900 dark:text-white mt-4 font-light">Quiz Completed!</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-lg sm:text-xl mt-2 font-mono uppercase tracking-widest">Excellent job finishing this recall practice block.</p>
       </div>
 
       {/* Accuracy & Score Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-8 mb-8 animate-slide-in-up transition-colors">
-        <div className="flex flex-col sm:flex-row justify-around items-center gap-6">
-          <div className="text-center">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Score Accuracy</span>
-            <div className="relative flex items-center justify-center h-28 w-28 rounded-full bg-slate-50 dark:bg-slate-950 border-4 border-indigo-500 text-slate-900 dark:text-slate-100 font-extrabold text-3xl shadow-sm">
-              {accuracy}%
-            </div>
-          </div>
+      <div className="relative premium-glass bg-technical-grid rounded-3xl p-6 sm:p-8 mb-8 animate-slide-in-up transition-colors overflow-hidden">
+        {/* Precision Crosshairs */}
+        <div className="absolute top-4 left-4 text-slate-400/30 dark:text-slate-500/30 text-[10px] font-mono leading-none pointer-events-none">+</div>
+        <div className="absolute top-4 right-4 text-slate-400/30 dark:text-slate-500/30 text-[10px] font-mono leading-none pointer-events-none">+</div>
+        <div className="absolute bottom-4 left-4 text-slate-400/30 dark:text-slate-500/30 text-[10px] font-mono leading-none pointer-events-none">+</div>
+        <div className="absolute bottom-4 right-4 text-slate-400/30 dark:text-slate-500/30 text-[10px] font-mono leading-none pointer-events-none">+</div>
 
-          <div className="text-center">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Retention Summary</span>
-            <div className="text-slate-900 dark:text-slate-100 font-extrabold text-5xl">
-              {score} <span className="text-slate-400 dark:text-slate-500 text-2xl">/ {quiz.length}</span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-2 uppercase tracking-wide">correct answers</p>
-          </div>
-        </div>
-
-        {/* Dynamic Card Type breakdown list */}
-        <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
-          <h3 className="text-sm font-bold text-slate-500 dark:text-slate-450 uppercase tracking-wider mb-4">Question Type Summary</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {Object.entries(typeCounts).map(([type, count]) => (
-              <div key={type} className="flex justify-between items-center bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 p-3 rounded-xl">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-350 capitalize">{type.replace('-', ' ')}</span>
-                <span className="bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-extrabold px-2 py-0.5 rounded-full">{count}</span>
+        <div className="space-y-8 relative z-10">
+          <div className="flex flex-col sm:flex-row justify-around items-center gap-6">
+            <div className="text-center">
+              <span className="text-xs font-mono uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Score Accuracy</span>
+              <div className="relative flex items-center justify-center h-28 w-28 rounded-full bg-slate-50 dark:bg-slate-950 border-4 border-slate-900 dark:border-white text-slate-900 dark:text-slate-100 font-extrabold text-3xl shadow-sm">
+                {accuracy}%
               </div>
-            ))}
+            </div>
+
+            <div className="text-center">
+              <span className="text-xs font-mono uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Retention Summary</span>
+              <div className="text-slate-900 dark:text-slate-100 font-extrabold text-5xl">
+                {score} <span className="text-slate-400 dark:text-slate-500 text-2xl">/ {quiz.length}</span>
+              </div>
+              <p className="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold mt-2 uppercase tracking-wide">correct answers</p>
+            </div>
+          </div>
+
+          {/* Dynamic Card Type breakdown list */}
+          <div className="border-t border-slate-900/5 dark:border-white/5 pt-6">
+            <h3 className="text-xs font-mono font-bold text-slate-500 dark:text-slate-450 uppercase tracking-wider mb-4">Question Type Summary</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(typeCounts).map(([type, count]) => (
+                <div key={type} className="flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 border border-slate-900/5 dark:border-white/5 p-3 rounded-xl">
+                  <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-350 uppercase">{type.replace('-', ' ')}</span>
+                  <span className="bg-slate-900 dark:bg-white text-white dark:text-slate-950 text-xs font-mono font-extrabold px-2 py-0.5 rounded-full">{count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -92,14 +100,14 @@ export default function ResultsPage() {
         <button
           type="button"
           onClick={() => navigate('/decks')}
-          className="flex-1 py-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-850 font-bold text-sm text-slate-700 dark:text-slate-300 shadow-sm transition"
+          className="flex-1 py-3.5 text-sm font-bold tracking-wide rounded-2xl active:scale-[0.97] transition-all border border-slate-900/10 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white/80 dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 shadow-sm uppercase"
         >
           Return to Library
         </button>
         <button
           type="button"
           onClick={handleRestart}
-          className="flex-1 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all"
+          className="flex-1 py-3.5 text-sm font-bold tracking-wide rounded-2xl active:scale-[0.97] transition-all bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-950 shadow-md uppercase"
         >
           Restart Quiz Session
         </button>

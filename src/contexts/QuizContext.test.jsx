@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { QuizProvider, useQuizSession, useQuizLibrary } from './QuizContext.jsx';
-import { closeDB } from '../shared/services/db.js';
+import { closeDB } from '../shared/services/indexedDB.js';
 
 // A test consumer component to read session slice
 function SessionConsumer() {

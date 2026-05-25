@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo } from 'react';
 import { useQuiz } from '../features/quiz/hooks/useQuizState.js';
-import { initDB } from '../shared/services/db.js';
+import { initDB } from '../shared/services/indexedDB.js';
 
 const QuizSessionContext = createContext(null);
 const QuizLibraryContext = createContext(null);

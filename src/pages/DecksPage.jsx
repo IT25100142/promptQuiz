@@ -176,8 +176,8 @@ export default function DecksPage() {
       {/* Header bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-12">
         <div>
-          <h1 className="font-serif text-5xl sm:text-6xl tracking-tight text-slate-900 dark:text-white font-light">My Study Library</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1.5 font-mono uppercase tracking-widest text-[10px]">Active recalling & card deck indexes.</p>
+          <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight text-slate-900 dark:text-white font-light">My Study Library</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-lg sm:text-xl mt-2 font-mono uppercase tracking-widest">Active recalling & card deck indexes.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -193,7 +193,7 @@ export default function DecksPage() {
             onClick={handleExportLibrary}
             disabled={deckLoading}
             aria-label="Export library"
-            className="inline-flex items-center justify-center rounded-full border border-slate-900/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-900/5 dark:hover:bg-white/5 disabled:opacity-50 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-900/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-900/5 dark:hover:bg-white/5 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
           >
             Export
           </button>
@@ -202,14 +202,14 @@ export default function DecksPage() {
             onClick={handleImportLibraryPick}
             disabled={deckLoading}
             aria-label="Import library"
-            className="inline-flex items-center justify-center rounded-full border border-amber-500/15 dark:border-amber-500/15 bg-amber-50/20 dark:bg-amber-955/10 px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase text-amber-800 dark:text-amber-300 shadow-xs hover:bg-amber-100/20 dark:hover:bg-amber-900/10 disabled:opacity-50 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center rounded-xl border border-amber-500/15 dark:border-amber-500/15 bg-amber-50/20 dark:bg-amber-955/10 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-amber-800 dark:text-amber-300 shadow-sm hover:bg-amber-100/20 dark:hover:bg-amber-900/10 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
           >
             Import
           </button>
           <button
             type="button"
             onClick={() => navigate('/create-deck')}
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase text-white dark:text-slate-955 shadow-md transition-all cursor-pointer"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-white dark:text-slate-955 shadow-md transition-all cursor-pointer active:scale-[0.98]"
           >
             New Deck
           </button>
@@ -218,7 +218,7 @@ export default function DecksPage() {
 
       {/* Bento Layout Canvas */}
       {hasDecks ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
           {/* Hero Stage: Master active deck */}
           <div className="lg:col-span-2 premium-glass rounded-3xl p-8 md:p-12 min-h-[420px] transition-all duration-300 relative group bg-technical-grid overflow-hidden">
             {/* Corner Crosshairs */}
@@ -280,7 +280,7 @@ export default function DecksPage() {
                             key={quiz.id}
                             type="button"
                             onClick={() => handleStudyQuiz(quiz.id, heroDeck.id)}
-                            className="w-full flex items-center justify-between text-left px-3 py-2 rounded border-l-2 border-l-transparent hover:border-l-indigo-500 bg-slate-50/30 dark:bg-slate-950/30 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all duration-200 group"
+                            className="w-full flex items-center justify-between text-left px-4 py-3 rounded-lg border-l-2 border-l-transparent hover:border-l-indigo-500 bg-slate-50/30 dark:bg-slate-950/30 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all duration-200 group active:scale-[0.98]"
                           >
                             <span className="text-[11px] font-mono tracking-wide text-slate-700 dark:text-slate-300 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors truncate pr-2">
                               {quiz.name}
@@ -314,14 +314,14 @@ export default function DecksPage() {
                               setActiveDeckForNewQuiz(null);
                               setNewQuizName('');
                             }}
-                            className="px-2 py-1 text-[9px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-700 uppercase"
+                            className="px-4 py-2 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98] transition uppercase"
                           >
                             Abort
                           </button>
                           <button
                             type="button"
                             onClick={() => handleCreateQuiz(heroDeck.id)}
-                            className="px-2 py-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[9px] font-mono font-bold uppercase transition hover:bg-indigo-600 dark:hover:bg-indigo-400"
+                            className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold uppercase transition hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98]"
                           >
                             Execute
                           </button>
@@ -432,7 +432,7 @@ export default function DecksPage() {
                                 key={quiz.id}
                                 type="button"
                                 onClick={() => handleStudyQuiz(quiz.id, deck.id)}
-                                className="w-full flex items-center justify-between text-left py-1 hover:pl-2 border-l-2 border-l-transparent hover:border-l-indigo-500 transition-all text-[10px] font-mono group/btn"
+                                className="w-full flex items-center justify-between text-left py-2 px-2 rounded hover:pl-3 border-l-2 border-l-transparent hover:border-l-indigo-500 transition-all text-xs font-mono group/btn hover:bg-slate-50 dark:hover:bg-slate-900/50 active:scale-[0.98]"
                               >
                                 <span className="text-slate-600 dark:text-slate-400 group-hover/btn:text-indigo-600 dark:group-hover/btn:text-indigo-400 truncate">
                                   &gt; {quiz.name}
@@ -464,14 +464,14 @@ export default function DecksPage() {
                                   setActiveDeckForNewQuiz(null);
                                   setNewQuizName('');
                                 }}
-                                className="px-2 py-0.5 text-[8px] font-mono text-slate-500 uppercase"
+                                className="px-3 py-1.5 rounded text-[10px] font-mono text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 uppercase active:scale-[0.98] transition"
                               >
                                 Abort
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleCreateQuiz(deck.id)}
-                                className="px-2 py-0.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[8px] font-mono font-bold uppercase"
+                                className="px-3 py-1.5 rounded bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-mono font-bold uppercase hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98] transition"
                               >
                                 Exec
                               </button>
@@ -500,16 +500,16 @@ export default function DecksPage() {
         </div>
       ) : (
         /* Editorial empty state minimalist layout */
-        <div className="flex-1 flex flex-col items-center justify-center py-24 text-center max-w-md mx-auto mt-4">
-          <span className="text-4xl mb-4 opacity-75">📚</span>
-          <h2 className="font-serif text-3xl tracking-tight text-slate-900 dark:text-slate-100 mt-2 mb-4 font-light">Your Library is Empty</h2>
-          <p className="text-slate-550 dark:text-slate-400 text-sm leading-relaxed mb-8 max-w-sm font-sans">
+        <div className="flex-1 flex flex-col items-center justify-center py-32 text-center max-w-3xl mx-auto mt-4">
+          <span className="text-7xl mb-8 opacity-75">📚</span>
+          <h2 className="font-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight text-slate-900 dark:text-slate-100 mt-2 mb-6 font-light">Your Library is Empty</h2>
+          <p className="text-slate-550 dark:text-slate-400 text-lg sm:text-xl leading-relaxed mb-10 max-w-2xl font-sans">
             Create folder decks to organize active recall quizzes, or paste raw study notes to build tests instantly.
           </p>
           <button
             type="button"
             onClick={() => navigate('/create-deck')}
-            className="inline-flex items-center justify-center rounded-full bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-6 py-2 text-xs font-mono tracking-widest uppercase text-white dark:text-slate-950 shadow-md transition-all active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-10 py-4 text-lg font-bold tracking-wide min-w-[280px] uppercase text-white dark:text-slate-950 shadow-md transition-all active:scale-[0.98]"
           >
             Create Your First Deck
           </button>

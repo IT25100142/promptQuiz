@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   initDB,
-  saveDeck,
-  getDecks,
-  saveQuiz,
-  getQuizzesByDeck,
-  saveQuestions,
-  getQuestionsByQuiz,
-  getDueQuestions,
+  createDeck,
+  getAllDecks,
+  createQuiz,
+  getQuizzesByDeckId,
+  addQuestions,
+  getQuestionsByQuizId,
+  getDueReviews,
   closeDB
-} from './db.js';
+} from './indexedDB.js';
 
-describe('IndexedDB CRUD Services (db.js)', () => {
+describe('IndexedDB CRUD Services (indexedDB.js)', () => {
   beforeEach(async () => {
     // Close any active database connection first
     await closeDB();
@@ -40,10 +40,10 @@ describe('IndexedDB CRUD Services (db.js)', () => {
   });
 
   it('should save a deck and allow retrieving it', async () => {
-    const deckId = await saveDeck('Computer Science', 'Topics related to CS');
+    const deckId = await createDeck('Computer Science', 'Topics related to CS');
     expect(deckId).toBeTypeOf('number');
 
-    const decks = await getDecks();
+    const decks = await getAllDecks();
     expect(decks.length).toBe(1);
     expect(decks[0].name).toBe('Computer Science');
     expect(decks[0].description).toBe('Topics related to CS');
@@ -52,29 +52,29 @@ describe('IndexedDB CRUD Services (db.js)', () => {
   });
 
   it('should save a quiz inside a deck and retrieve it using deckId index', async () => {
-    const deckId = await saveDeck('Math', 'Math courses');
-    const quizId = await saveQuiz(deckId, 'Calculus 101', 'Introductory Calculus');
+    const deckId = await createDeck('Math', 'Math courses');
+    const quizId = await createQuiz(deckId, 'Calculus 101', 'Introductory Calculus');
     expect(quizId).toBeTypeOf('number');
 
-    const quizzes = await getQuizzesByDeck(deckId);
+    const quizzes = await getQuizzesByDeckId(deckId);
     expect(quizzes.length).toBe(1);
     expect(quizzes[0].name).toBe('Calculus 101');
     expect(quizzes[0].deckId).toBe(deckId);
   });
 
   it('should execute batch insertion of questions and sort them by order', async () => {
-    const deckId = await saveDeck('Languages', 'Language learning');
-    const quizId = await saveQuiz(deckId, 'Spanish Vocab', 'Basic Vocab');
+    const deckId = await createDeck('Languages', 'Language learning');
+    const quizId = await createQuiz(deckId, 'Spanish Vocab', 'Basic Vocab');
 
     const questions = [
       { type: 'multiple-choice', question: 'How to say Hello?' },
       { type: 'true-false', question: 'Adios means Goodbye.' },
     ];
 
-    const questionIds = await saveQuestions(quizId, deckId, questions);
+    const questionIds = await addQuestions(quizId, deckId, questions);
     expect(questionIds.length).toBe(2);
 
-    const savedQuestions = await getQuestionsByQuiz(quizId);
+    const savedQuestions = await getQuestionsByQuizId(quizId);
     expect(savedQuestions.length).toBe(2);
     expect(savedQuestions[0].order).toBe(0);
     expect(savedQuestions[1].order).toBe(1);
@@ -98,7 +98,7 @@ describe('IndexedDB CRUD Services (db.js)', () => {
       transaction.onerror = () => reject(transaction.error);
     });
 
-    const dueList = await getDueQuestions('2026-05-25T00:00:00Z');
+    const dueList = await getDueReviews('2026-05-25T00:00:00Z');
     expect(dueList.length).toBe(1);
     expect(dueList[0].questionId).toBe(1);
   });

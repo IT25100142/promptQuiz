@@ -92,14 +92,14 @@ async function initDB() {
 }
 
 // Create a new deck (folder)
-async function createDeck(deckName) {
+async function createDeck(deckName, description = '') {
   try {
     const db = await initDB()
     
     const deck = {
       name: deckName,
       date: new Date().toISOString(),
-      description: ''
+      description
     }
 
     return new Promise((resolve, reject) => {
@@ -176,7 +176,7 @@ async function deleteDeck(deckId) {
 // QUIZ MANAGEMENT FUNCTIONS
 
 // Create a new quiz within a deck
-async function createQuiz(deckId, quizName) {
+async function createQuiz(deckId, quizName, description = '') {
   try {
     const db = await initDB()
     
@@ -184,7 +184,7 @@ async function createQuiz(deckId, quizName) {
       name: quizName,
       deckId: deckId,
       date: new Date().toISOString(),
-      description: ''
+      description
     }
 
     return new Promise((resolve, reject) => {
@@ -714,7 +714,7 @@ async function updateReviewSchedule(questionId, performanceQuality) {
 }
 
 // Get all due reviews for daily review
-async function getDueReviews() {
+async function getDueReviews(currentIsoDate = new Date().toISOString()) {
   try {
     const db = await initDB()
     
@@ -722,7 +722,7 @@ async function getDueReviews() {
       const transaction = db.transaction(['reviewSchedule'], 'readonly')
       const store = transaction.objectStore('reviewSchedule')
       const index = store.index('nextReviewDate')
-      const request = index.getAll(IDBKeyRange.upperBound(new Date().toISOString()))
+      const request = index.getAll(IDBKeyRange.upperBound(currentIsoDate))
 
       request.onerror = () => reject(request.error)
       request.onsuccess = () => resolve(request.result || [])
@@ -842,6 +842,9 @@ async function importLibrarySnapshot(json, { mode = 'replace' } = {}) {
 }
 
 export {
+  // Connection management
+  initDB,
+  
   // Deck management
   createDeck,
   updateDeck,
@@ -882,4 +885,17 @@ export {
 
   exportLibrarySnapshot,
   importLibrarySnapshot,
+}
+
+// Session Connection Utilities
+export async function closeDB() {
+  if (dbOpenPromise) {
+    const db = await dbOpenPromise;
+    db.close();
+    dbOpenPromise = null;
+  }
+}
+
+export function resetDBPromise() {
+  dbOpenPromise = null;
 }

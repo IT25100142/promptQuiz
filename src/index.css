@@ -102,3 +102,20 @@ html, body, #root {
 body {
   @apply bg-premium-mesh text-slate-900 dark:text-slate-100 transition-colors duration-300 antialiased;
 }
+
+/* Fix Dark Mode Contrast & Eliminiate Bright Flashes */
+@media (prefers-color-scheme: dark) {
+  html, body, #root {
+    background-color: #020617;
+  }
+}
+html.dark, html.dark body, html.dark #root {
+  background-color: #020617;
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(148, 163, 184, 0.5); /* text-slate-400/50 */
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: rgba(100, 116, 139, 0.5); /* text-slate-500/50 */
+}
