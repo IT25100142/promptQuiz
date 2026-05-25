@@ -152,20 +152,20 @@ C. Computer Style Sheets
   if (!showAIPromptBuilder) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-zoom-in transition-colors duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-xs p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900/80 dark:backdrop-blur-md rounded-3xl border border-slate-900/5 dark:border-white/10 shadow-[0_24px_50px_rgba(0,0,0,0.06)] max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-zoom-in transition-colors duration-200">
         {/* Header section */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 p-6">
+        <div className="flex items-center justify-between border-b border-slate-900/5 dark:border-white/5 p-6">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               🤖 AI Prompt Builder
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Generate customized prompts, run outputs in LLMs, and load questions instantly.</p>
+            <p className="text-slate-500 dark:text-slate-405 text-xs mt-0.5">Generate customized prompts, run outputs in LLMs, and load questions instantly.</p>
           </div>
           <button
             type="button"
             onClick={() => setShowAIPromptBuilder(false)}
-            className="text-slate-400 dark:text-slate-500 hover:text-slate-655 dark:hover:text-slate-300 transition p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 font-bold"
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-350 transition p-2 rounded-lg hover:bg-slate-900/5 dark:hover:bg-white/5 font-bold"
           >
             ✕
           </button>
@@ -175,24 +175,24 @@ C. Computer Style Sheets
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left panel: Prompt generator config */}
           <div className="space-y-5">
-            <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">1. Configure Prompts</h3>
+            <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">1. Configure Prompts</h3>
             
             {/* Topic Input */}
             <div>
-              <label htmlFor="modalTopic" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Topic or Study Notes</label>
+              <label htmlFor="modalTopic" className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Topic or Study Notes</label>
               <textarea
                 id="modalTopic"
                 rows={3}
                 placeholder="e.g. JavaScript Async/Await, cell respiration notes, etc."
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-750 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 dark:bg-slate-850 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-slate-100 resize-none transition-colors"
+                className="w-full text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-transparent bg-slate-105/50 dark:bg-slate-950/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100 resize-none transition-all shadow-inner"
               />
             </div>
 
             {/* Question types selection */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Question Types desired</label>
+              <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Question Types desired</label>
               <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {[
                   { id: 'multiple-choice', label: 'Multiple Choice' },
@@ -201,13 +201,13 @@ C. Computer Style Sheets
                   { id: 'cloze', label: 'Cloze Deletion' },
                   { id: 'short-answer', label: 'Short Answer' }
                 ].map((type) => (
-                  <label key={type.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                  <label key={type.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-xl border border-slate-900/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-905/5 dark:hover:bg-white/5 transition-all">
                     <input
                       type="checkbox"
                       checked={selectedTypes.includes(type.id)}
                       onChange={() => handleTypeToggle(type.id)}
                       disabled={selectedTypes.includes(type.id) && selectedTypes.length === 1}
-                      className="rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-slate-900/10 dark:border-white/10 bg-white dark:bg-slate-900 text-indigo-650 focus:ring-indigo-500"
                     />
                     <span>{type.label}</span>
                   </label>
@@ -217,9 +217,9 @@ C. Computer Style Sheets
 
             {/* Questions count slider */}
             <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <div className="flex justify-between text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
                 <label htmlFor="modalCount">Number of Questions</label>
-                <span className="text-indigo-600 dark:text-indigo-400">{questionCount}</span>
+                <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{questionCount}</span>
               </div>
               <input
                 id="modalCount"
@@ -233,12 +233,12 @@ C. Computer Style Sheets
             </div>
 
             {/* Generated Prompt Block */}
-            <div className="relative border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-900 dark:bg-slate-950 text-slate-305 p-4 font-mono text-[10px] max-h-[200px] overflow-y-auto">
+            <div className="relative border border-slate-900/5 dark:border-white/10 rounded-2xl bg-slate-950 dark:bg-black text-slate-300 p-4 font-mono text-[10px] max-h-[160px] overflow-y-auto">
               <pre className="whitespace-pre-wrap">{generatedPrompt}</pre>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-indigo-600 text-white font-semibold transition flex items-center gap-1 shadow-sm"
+                className="absolute top-2 right-2 px-3 py-1 rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-indigo-650 text-white font-semibold text-[10px] transition-all flex items-center gap-1 shadow-sm active:scale-[0.97]"
               >
                 {copied ? '✅ Copied' : '📋 Copy Prompt'}
               </button>
@@ -247,29 +247,29 @@ C. Computer Style Sheets
 
           {/* Right panel: Response Paste sandbox and library selector */}
           <div className="space-y-5 flex flex-col">
-            <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">2. Paste & Import</h3>
+            <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">2. Paste & Import</h3>
             
             {/* Sandbox textarea */}
             <div className="flex-1 flex flex-col">
-              <label htmlFor="modalOutput" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Paste LLM Output Here</label>
+              <label htmlFor="modalOutput" className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Paste LLM Output Here</label>
               <textarea
                 id="modalOutput"
                 rows={8}
                 placeholder="Paste the generated response from external AI models here..."
                 value={llmOutput}
                 onChange={(e) => setLlmOutput(e.target.value)}
-                className="w-full flex-1 font-mono text-xs p-3.5 rounded-xl border border-slate-200 dark:border-slate-750 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 dark:bg-slate-850 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-slate-100 transition-colors"
+                className="w-full flex-1 font-mono text-xs p-3.5 rounded-xl border border-transparent bg-slate-105/50 dark:bg-slate-955/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100 transition-all shadow-inner"
               />
             </div>
 
             {/* Target Deck selector options */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-850/40 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs space-y-3">
-              <div className="flex items-center justify-between font-bold text-slate-700 dark:text-slate-300">
-                <span>Select Target Deck:</span>
+            <div className="p-4 bg-slate-50/50 dark:bg-slate-955/35 border border-slate-900/5 dark:border-white/5 rounded-2xl text-xs space-y-3 shadow-inner">
+              <div className="flex items-center justify-between font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                <span className="text-[10px]">Select Target Deck:</span>
                 <button
                   type="button"
                   onClick={() => setIsCreatingNewDeck(!isCreatingNewDeck)}
-                  className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-305 font-bold"
+                  className="text-indigo-655 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-305 font-bold tracking-normal uppercase text-[10px]"
                 >
                   {isCreatingNewDeck ? 'Choose Existing' : 'Create New Deck'}
                 </button>
@@ -281,13 +281,13 @@ C. Computer Style Sheets
                   placeholder="New Deck Name..."
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-lg border border-transparent bg-slate-105/50 dark:bg-slate-950/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100 transition-all font-semibold shadow-inner"
                 />
               ) : (
                 <select
                   value={selectedDeckId}
                   onChange={(e) => setSelectedDeckId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                  className="w-full px-3 py-2 rounded-lg border border-transparent bg-slate-105/50 dark:bg-slate-950/65 text-slate-900 dark:text-slate-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent font-semibold shadow-inner"
                 >
                   {library.savedDecks?.length > 0 ? (
                     library.savedDecks.map(deck => (
@@ -304,8 +304,8 @@ C. Computer Style Sheets
             {validationResult && (
               <div className={`p-4 rounded-xl border flex items-start gap-2.5 text-xs font-semibold animate-fade-up ${
                 validationResult.ok 
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300' 
-                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-350'
+                  ? 'border-emerald-500/10 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300' 
+                  : 'border-rose-500/10 bg-rose-50/40 dark:bg-rose-950/20 text-rose-800 dark:text-rose-350'
               }`}>
                 <span className="text-sm">{validationResult.ok ? '✅' : '⚠️'}</span>
                 <div>
@@ -321,11 +321,11 @@ C. Computer Style Sheets
         </div>
 
         {/* Modal actions footer */}
-        <div className="border-t border-slate-100 dark:border-slate-800 p-6 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="border-t border-slate-900/5 dark:border-white/5 p-6 flex justify-end gap-3 bg-slate-50/50 dark:bg-slate-955/50">
           <button
             type="button"
             onClick={() => setShowAIPromptBuilder(false)}
-            className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition"
+            className="px-5 py-2.5 rounded-lg border border-slate-900/10 dark:border-white/10 bg-white dark:bg-slate-900 hover:bg-slate-55 dark:hover:bg-slate-850 text-xs font-bold text-slate-700 dark:text-slate-305 shadow-xs transition cursor-pointer"
           >
             Close
           </button>
@@ -333,7 +333,7 @@ C. Computer Style Sheets
             type="button"
             disabled={!validationResult || !validationResult.ok}
             onClick={handleImport}
-            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
+            className="px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-550 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-indigo-500/10 transition-all active:scale-[0.98] cursor-pointer"
           >
             Import to Library
           </button>

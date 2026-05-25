@@ -34,35 +34,35 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-900 dark:selection:text-indigo-100 transition-colors duration-200">
       {/* Top persistent navigation bar */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-8">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-900/5 dark:border-white/5 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6">
             <Link 
               to="/decks" 
-              className="flex items-center gap-2 text-xl font-extrabold tracking-tight text-indigo-600 dark:text-indigo-400 hover:opacity-90 transition"
+              className="flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900 dark:text-white hover:opacity-80 transition"
             >
-              <span>PromptQuiz 🧠⚡</span>
+              <span>PromptQuiz</span>
             </Link>
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-1.5">
               <Link 
                 to="/decks" 
-                className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5 transition-all duration-200"
               >
                 My Library
               </Link>
               <Link 
                 to="/create-deck" 
-                className="text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5 transition-all duration-200"
               >
                 Create Deck
               </Link>
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Decks in memory indicator */}
-            <div className="flex items-center gap-2 rounded-full bg-indigo-50 dark:bg-indigo-950/45 px-4 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/50">
-              <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+            <div className="flex items-center gap-2 rounded-full bg-slate-900/5 dark:bg-white/5 px-3 py-1 text-[11px] font-medium tracking-tight text-slate-600 dark:text-slate-350 border border-slate-900/5 dark:border-white/5">
+              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
               {deckCount} {deckCount === 1 ? 'Deck' : 'Decks'} Stored
             </div>
 
@@ -70,16 +70,16 @@ export default function Layout({ children }) {
             <button
               type="button"
               onClick={toggleTheme}
-              className="inline-flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-900/5 dark:border-white/5 bg-transparent hover:bg-slate-900/5 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? (
-                <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M17.66 6.34l-1.41 1.41" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
@@ -88,14 +88,14 @@ export default function Layout({ children }) {
             <button
               type="button"
               onClick={() => shell.setShowAIPromptBuilder(true)}
-              className="inline-flex items-center justify-center rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 px-4 py-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300 shadow-sm transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-900/5 dark:border-white/5 bg-slate-900/5 dark:bg-white/5 hover:bg-slate-900/10 dark:hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
             >
-              AI Prompt Builder 🤖
+              AI Prompt Builder
             </button>
 
             <Link
               to="/create-deck"
-              className="inline-flex items-center justify-center rounded-xl bg-indigo-600 dark:bg-indigo-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all"
             >
               New Deck
             </Link>
