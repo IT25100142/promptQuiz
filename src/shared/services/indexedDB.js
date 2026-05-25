@@ -376,6 +376,26 @@ async function getQuestionsByQuizId(quizId) {
   }
 }
 
+// Get count of questions in a quiz (fast native row count)
+async function getQuestionsCountByQuizId(quizId) {
+  try {
+    const db = await initDB()
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['questions'], 'readonly')
+      const store = transaction.objectStore('questions')
+      const index = store.index('quizId')
+      const request = index.count(quizId)
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => resolve(request.result || 0)
+      transaction.onerror = () => reject(transaction.error)
+    })
+  } catch (error) {
+    throw new Error(`Failed to get questions count: ${error.message}`)
+  }
+}
+
 // Update a specific question
 async function updateQuestion(questionId, updates) {
   try {
@@ -863,6 +883,7 @@ export {
   // Question management
   addQuestions,
   getQuestionsByQuizId,
+  getQuestionsCountByQuizId,
   updateQuestion,
   getQuestionById,
   deleteQuestion,

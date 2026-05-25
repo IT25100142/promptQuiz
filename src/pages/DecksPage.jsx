@@ -5,6 +5,11 @@ import {
   exportLibrarySnapshot,
   importLibrarySnapshot,
   getAllDecks,
+  getQuizzesByDeckId,
+  getQuestionsByQuizId,
+  getQuestionsCountByQuizId,
+  deleteDeck,
+  createQuiz
 } from '../shared/services/indexedDB.js';
 
 export default function DecksPage() {
@@ -25,13 +30,13 @@ export default function DecksPage() {
   // Fetch quizzes for each deck
   const fetchQuizzes = async (deckId) => {
     try {
-      const list = await library.getQuizzesByDeck(deckId);
+      const list = await getQuizzesByDeckId(deckId);
       setQuizzesMap(prev => ({ ...prev, [deckId]: list }));
       
       // Fetch question count for each quiz in this deck
       for (const q of list) {
-        const questions = await library.getQuestionsByQuiz(q.id);
-        setQuestionsCountMap(prev => ({ ...prev, [q.id]: questions.length }));
+        const count = await getQuestionsCountByQuizId(q.id);
+        setQuestionsCountMap(prev => ({ ...prev, [q.id]: count }));
       }
     } catch (e) {
       console.error(`Failed to load quizzes for deck ${deckId}:`, e);
@@ -49,7 +54,7 @@ export default function DecksPage() {
   const handleStudyQuiz = async (quizId, deckId) => {
     setDeckLoading(true);
     try {
-      const questions = await library.getQuestionsByQuiz(quizId);
+      const questions = await getQuestionsByQuizId(quizId);
       if (questions.length === 0) {
         shell.showToast('This quiz has no questions yet.', 'error');
         return;
@@ -74,7 +79,7 @@ export default function DecksPage() {
     }
     setDeckLoading(true);
     try {
-      await library.deleteDeck(deckId);
+      await deleteDeck(deckId);
       shell.showToast('Deck deleted successfully', 'success');
     } catch (err) {
       console.error(err);
@@ -91,7 +96,7 @@ export default function DecksPage() {
     }
     setDeckLoading(true);
     try {
-      await library.addQuiz(deckId, newQuizName.trim(), 'Quiz description');
+      await createQuiz(deckId, newQuizName.trim(), 'Quiz description');
       setNewQuizName('');
       setActiveDeckForNewQuiz(null);
       shell.showToast('Quiz created successfully', 'success');
