@@ -2,6 +2,8 @@ import { cx } from '../shared/utils/helpers.js'
 import QuizToolbar from './QuizToolbar.jsx'
 import ProgressBar from './ProgressBar.jsx'
 import CardOverviewModal from './CardOverviewModal.jsx'
+import { calculateNextReview } from '../shared/services/sm2.js'
+import { initDB } from '../shared/services/db.js'
 
 export default function QuizView({
   current,
@@ -34,6 +36,56 @@ export default function QuizView({
   jumpToQuestion,
   quiz
 }) {
+  const handleSM2Rating = async (rating) => {
+    try {
+      const db = await initDB();
+      const schedule = await new Promise((resolve, reject) => {
+        const transaction = db.transaction(['reviewSchedule'], 'readonly');
+        const store = transaction.objectStore('reviewSchedule');
+        const index = store.index('questionId');
+        const request = index.get(current.id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+
+      const nextReview = calculateNextReview({
+        interval: schedule ? schedule.interval : 1,
+        easeFactor: schedule ? schedule.easeFactor : 2.5,
+        quality: rating
+      });
+
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction(['reviewSchedule'], 'readwrite');
+        const store = transaction.objectStore('reviewSchedule');
+        const newSchedule = {
+          ...(schedule || {}),
+          questionId: current.id,
+          deckId: current.deckId,
+          interval: nextReview.interval,
+          easeFactor: nextReview.easeFactor,
+          nextReviewDate: nextReview.nextReviewDate,
+          lastReviewedDate: new Date().toISOString()
+        };
+        const request = store.put(newSchedule);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+
+      if (idx + 1 === total) {
+        onQuizComplete();
+      } else {
+        goNext();
+      }
+    } catch (err) {
+      console.error('SM-2 update failed:', err);
+      if (idx + 1 === total) {
+        onQuizComplete();
+      } else {
+        goNext();
+      }
+    }
+  };
+
   if (!current) return null
 
   return (
@@ -313,6 +365,35 @@ export default function QuizView({
             </div>
           )}
         </div>
+
+        {isAnswered() && (
+          <div className="mt-6 border-t border-slate-100 pt-6 animate-fade-in">
+            <span className="block text-center text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+              Rate your recall performance (SM-2):
+            </span>
+            <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
+              {[
+                { val: 1, label: 'No Recall' },
+                { val: 2, label: 'Vague' },
+                { val: 3, label: 'Hard' },
+                { val: 4, label: 'Good' },
+                { val: 5, label: 'Perfect' }
+              ].map((rating) => (
+                <button
+                  key={rating.val}
+                  type="button"
+                  onClick={() => handleSM2Rating(rating.val)}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50 text-slate-700 hover:text-indigo-900 transition group cursor-pointer"
+                >
+                  <span className="text-sm font-extrabold group-hover:scale-110 transition">{rating.val}</span>
+                  <span className="text-[9px] font-semibold text-slate-400 group-hover:text-indigo-700 transition mt-1 text-center truncate w-full">
+                    {rating.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <button
