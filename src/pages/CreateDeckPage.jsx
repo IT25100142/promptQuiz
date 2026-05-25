@@ -66,15 +66,15 @@ export default function CreateDeckPage() {
   return (
     <div className="flex-1 max-w-3xl mx-auto w-full">
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Create Study Deck</h1>
-        <p className="text-slate-500 mt-1">Configure metadata folders and paste study sheets to generate recall cards.</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Create Study Deck</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">Configure metadata folders and paste study sheets to generate recall cards.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm transition-colors">
         {/* Deck metadata */}
         <div className="grid grid-cols-1 gap-6">
           <div>
-            <label htmlFor="deckName" className="block text-sm font-bold text-slate-700 mb-2">Deck Name</label>
+            <label htmlFor="deckName" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Deck Name</label>
             <input
               id="deckName"
               type="text"
@@ -83,12 +83,12 @@ export default function CreateDeckPage() {
               placeholder="e.g. Spanish Vocabulary, CS Algorithms..."
               value={deckName}
               onChange={(e) => setDeckName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold transition bg-slate-50 focus:bg-white"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-750 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold transition bg-slate-50 dark:bg-slate-850 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label htmlFor="deckDescription" className="block text-sm font-bold text-slate-700 mb-2">Description</label>
+            <label htmlFor="deckDescription" className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Description</label>
             <textarea
               id="deckDescription"
               rows={2}
@@ -96,7 +96,7 @@ export default function CreateDeckPage() {
               placeholder="Provide a brief summary of what this study deck covers..."
               value={deckDescription}
               onChange={(e) => setDeckDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold transition bg-slate-50 focus:bg-white resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-750 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold transition bg-slate-50 dark:bg-slate-850 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-slate-100 resize-none"
             />
           </div>
         </div>
@@ -104,8 +104,8 @@ export default function CreateDeckPage() {
         {/* Text area ingestion */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label htmlFor="rawText" className="block text-sm font-bold text-slate-700">Paste Study Questions</label>
-            <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Format: AI Block / Markdown / CSV</span>
+            <label htmlFor="rawText" className="block text-sm font-bold text-slate-700 dark:text-slate-300">Paste Study Questions</label>
+            <span className="text-xs text-slate-400 dark:text-slate-550 font-bold uppercase tracking-wider">Format: AI Block / Markdown / CSV</span>
           </div>
           
           <textarea
@@ -115,24 +115,24 @@ export default function CreateDeckPage() {
             disabled={loading}
             placeholder={`[T/F] React 19 is fully compatible.
 *True
-
+ 
 What does CSS stand for?
 A. Computer Style Sheets
 B. Cascading Style Sheets
 *B`}
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
-            className="w-full font-mono text-sm px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition bg-slate-50 focus:bg-white"
+            className="w-full font-mono text-sm px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-750 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition bg-slate-50 dark:bg-slate-850 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-slate-100"
           />
         </div>
 
         {/* Form actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
             disabled={loading}
             onClick={() => navigate('/decks')}
-            className="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-sm font-bold text-slate-700 shadow-sm transition"
+            className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-850 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-700 dark:text-slate-300 shadow-sm transition"
           >
             Cancel
           </button>

@@ -1,12 +1,55 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* System base styling overrides can be placed below if needed */
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: #f9fafb;
-  color: #111827;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+html {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.dark {
+  background-color: #020617;
+  color: #cbd5e1;
+}
+
+@keyframes slide-in-up {
+  0% {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+

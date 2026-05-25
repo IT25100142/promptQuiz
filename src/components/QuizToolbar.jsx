@@ -18,7 +18,7 @@ export default function QuizToolbar({
               onChange={toggleShuffleMode}
               className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
-            <span className="text-sm font-medium text-slate-700">Shuffle</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Shuffle</span>
           </label>
           
           {shuffleMode && (
@@ -29,7 +29,7 @@ export default function QuizToolbar({
                 onChange={toggleKeepFirstQuestion}
                 className="h-3 w-3 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
-              <span className="text-xs text-slate-600">Keep first</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Keep first</span>
             </label>
           )}
         </div>
@@ -39,7 +39,7 @@ export default function QuizToolbar({
       <button
         type="button"
         onClick={onShowCardOverview}
-        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        className="flex items-center gap-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-850 px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
         title="View all questions"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

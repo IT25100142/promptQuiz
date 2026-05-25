@@ -14,7 +14,7 @@ export default function ResultsView({
 }) {
   return (
     <main className="flex-1 py-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm sm:p-6 transition-colors">
         <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
           <div className="rounded-lg bg-slate-950 p-5 text-white">
             <div className="text-sm font-semibold text-teal-200">
@@ -44,7 +44,7 @@ export default function ResultsView({
               <button
                 type="button"
                 onClick={editQuiz}
-                className="w-full rounded-md border border-slate-600 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                className="w-full rounded-md border border-slate-600 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-300"
               >
                 Back to Home
               </button>
@@ -57,7 +57,7 @@ export default function ResultsView({
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Review</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Review</h2>
             <div className="mt-4 grid gap-3">
               {quiz.map((question, questionIdx) => {
                 const selected = answers[questionIdx]
@@ -88,7 +88,6 @@ export default function ResultsView({
                     correctAnswerText = question.answers?.[0] || 'N/A'
                     break
                   case 'cloze':
-                    // For cloze, check if all blanks are filled correctly
                     const clozeAnswers = []
                     const blanks = question.question.split(/\{[^}]+\}/).length - 1
                     for (let i = 0; i < blanks; i++) {
@@ -113,25 +112,25 @@ export default function ResultsView({
                 return (
                   <article
                     key={question.id || questionIdx}
-                    className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                    className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850/60 p-4 transition-colors"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <h3 className="font-semibold leading-6 text-slate-950">
+                      <h3 className="font-semibold leading-6 text-slate-950 dark:text-slate-100">
                         {questionIdx + 1}. {question.question}
-                        <span className="ml-2 text-xs font-normal text-slate-500">
+                        <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-450">
                           ({question.type.replace('-', ' ')})
                         </span>
                       </h3>
                       <span
                         className={cx(
-                          'w-fit rounded-md px-2 py-1 text-xs font-bold',
+                          'w-fit rounded-md px-2 py-1 text-xs font-bold border',
                           question.type === 'short-answer' && selected?.selfAssessed !== undefined
                             ? selected?.selfAssessedCorrect
-                              ? 'bg-teal-100 text-teal-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-teal-100 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900/50'
+                              : 'bg-amber-100 dark:bg-amber-955/35 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/50'
                             : isCorrect
-                              ? 'bg-teal-100 text-teal-800'
-                              : 'bg-rose-100 text-rose-800',
+                              ? 'bg-teal-100 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-900/50'
+                              : 'bg-rose-100 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-900/50',
                         )}
                       >
                         {question.type === 'short-answer' && selected?.selfAssessed !== undefined
@@ -141,17 +140,17 @@ export default function ResultsView({
                             : 'Review'}
                       </span>
                     </div>
-                    <div className="mt-3 grid gap-2 text-sm leading-6 text-slate-700">
+                    <div className="mt-3 grid gap-2 text-sm leading-6 text-slate-700 dark:text-slate-350">
                       <p>
                         Your answer:{' '}
-                        <span className="font-semibold text-slate-950">
+                        <span className="font-semibold text-slate-955 dark:text-slate-100">
                           {userAnswerText}
                         </span>
                       </p>
                       {question.type !== 'short-answer' && !isCorrect && (
                         <p>
                           Correct answer:{' '}
-                          <span className="font-semibold text-slate-950">
+                          <span className="font-semibold text-slate-955 dark:text-slate-100">
                             {correctAnswerText}
                           </span>
                         </p>
@@ -159,7 +158,7 @@ export default function ResultsView({
                       {question.type === 'short-answer' && (
                         <p>
                           Model answer:{' '}
-                          <span className="font-semibold text-slate-950">
+                          <span className="font-semibold text-slate-955 dark:text-slate-100">
                             {correctAnswerText}
                           </span>
                         </p>
@@ -173,5 +172,5 @@ export default function ResultsView({
         </div>
       </section>
     </main>
-  )
+  );
 }

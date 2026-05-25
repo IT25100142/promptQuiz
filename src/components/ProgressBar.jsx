@@ -11,10 +11,10 @@ export default function ProgressBar({
     <div className="mb-6 space-y-3">
       {/* Progress text */}
       <div className="flex items-center justify-between text-sm">
-        <div className="font-medium text-slate-700">
+        <div className="font-medium text-slate-700 dark:text-slate-305">
           Question {idx + 1} of {total}
         </div>
-        <div className="text-slate-600">
+        <div className="text-slate-600 dark:text-slate-400">
           {answeredCount} answered | Score {score}
           {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
         </div>
@@ -22,7 +22,7 @@ export default function ProgressBar({
 
       {/* Progress bar */}
       <div
-        className="h-2 overflow-hidden rounded-full bg-slate-100"
+        className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
         role="progressbar"
         aria-valuemin="0"
         aria-valuemax="100"
@@ -36,7 +36,7 @@ export default function ProgressBar({
 
       {/* Progress percentage */}
       <div className="text-center">
-        <span className="inline-flex items-center rounded-md bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-800">
+        <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-800 dark:text-slate-305">
           {Math.round(progress)}% complete
         </span>
       </div>
