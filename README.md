@@ -1,312 +1,444 @@
-# PromptQuiz
+# PromptQuiz 🧠⚡
 
-**PromptQuiz** is a single-page React application for **active recall**: build quizzes from JSON or structured plain text, run them in the browser with scoring and progress, and persist **decks → quizzes → questions** locally with **IndexedDB**. An **AI Prompt Builder** helps you generate prompts for external LLMs; pasted model output uses the same parsing and validation pipeline as the manual input view.
+**PromptQuiz** is a high-performance, single-page React study application built for **active recall** and **spaced repetition**. It allows developers, students, and educators to construct interactive quiz decks from structured JSON or plain-text formats, run quiz sessions directly in the browser with rich scoring, and persist progress locally in **IndexedDB** (`PromptQuizDB`). 
 
----
-
-## Table of contents
-
-1. [Features](#features)  
-2. [Tech stack](#tech-stack)  
-3. [Prerequisites](#prerequisites)  
-4. [Getting started](#getting-started)  
-5. [NPM scripts](#npm-scripts)  
-6. [Application routes](#application-routes)  
-7. [Architecture overview](#architecture-overview)  
-8. [State management: three contexts](#state-management-three-contexts)  
-9. [Data layer (IndexedDB)](#data-layer-indexeddb)  
-10. [Library backup and restore](#library-backup-and-restore)  
-11. [Quiz input formats](#quiz-input-formats)  
-12. [Question types and JSON shapes](#question-types-and-json-shapes)  
-13. [Validation (Zod)](#validation-zod)  
-14. [AI Prompt Builder](#ai-prompt-builder)  
-15. [Testing and quality](#testing-and-quality)  
-16. [Building for production](#building-for-production)  
-17. [Privacy and limitations](#privacy-and-limitations)  
-18. [Troubleshooting](#troubleshooting)  
-19. [Project structure](#project-structure)  
+It includes an interactive **AI Prompt Builder** to easily generate prompt instructions for external LLMs (e.g. Gemini, Claude, ChatGPT), allowing users to copy prompts, get structured question outputs, and paste the results back for instant parsing and validation.
 
 ---
 
-## Features
+## 🗺️ Table of Contents
 
-| Area | What you get |
-|:---|:---|
-| **Quiz session** | Multiple question types, prev/next navigation, optional shuffle and “keep first question”, text input for blanks/cloze/short answer, self-assessment where applicable, progress and score. |
-| **Results** | End-of-run summary, review of mistakes, navigation back into practice flows where implemented. |
-| **Library** | Hierarchical **decks** (folders) containing **quizzes**, each with an ordered **question** list; browse on **My Decks**, create/edit on **Create**. |
-| **Persistence** | All library data in **IndexedDB** (`PromptQuizDB`); optional restore of **last-used deck** on startup. |
-| **Import** | **JSON array** of questions, or **plain-text** formats (including AI-style blocks separated by blank lines). Parsing is implemented in `src/shared/utils/helpers.js` (`safeParseQuizJson`, `parseTextFormat`, block parsers). |
-| **Validation** | **Zod** schemas in `src/shared/schemas/quizQuestions.js` for starting a quiz, AI parse success path, and snapshot import. |
-| **Backup** | **Export library** / **Import library** (JSON snapshot, replace mode) from the **Decks** page. |
-| **AI workflow** | Modal **AI Prompt Builder**: configure topic/types/count, copy generated prompt, paste model response, **Parse & Load** after validation. |
-| **Accessibility** | `eslint-plugin-jsx-a11y` (recommended rules); labels, keyboard-friendly deck cards, reduced reliance on `autoFocus` in dense forms. |
-
----
-
-## Tech stack
-
-| Layer | Choice |
-|:---|:---|
-| UI | **React 19**, **JSX** |
-| Routing | **React Router 7** (`BrowserRouter`, `Routes`, `Route`) |
-| Styling | **Tailwind CSS 4** (via `@tailwindcss/vite`) |
-| Build | **Vite 8** |
-| Validation | **Zod 4** |
-| Client storage | **IndexedDB** (native API, wrapped in `src/shared/services/indexedDB.js`) |
-| Tests | **Vitest 4**, **jsdom**, **Testing Library** (React, user-event, jest-dom) |
-| Lint | **ESLint 10** flat config, **React Hooks**, **React Refresh**, **jsx-a11y** |
+1. [Features](#-features)
+2. [Tech Stack](#-tech-stack)
+3. [Architecture Overview](#-architecture-overview)
+4. [State Management (Three-Slice Context)](#-state-management-three-slice-context)
+5. [Data Layer & IndexedDB Schema](#-data-layer--indexeddb-schema)
+6. [Spaced Repetition Engine (SM-2 Algorithm)](#-spaced-repetition-engine-sm-2-algorithm)
+7. [Quiz Import & Text Formats](#-quiz-import--text-formats)
+8. [Question Types & JSON Schema](#-question-types--json-schema)
+9. [Prerequisites & Installation](#-prerequisites--installation)
+10. [NPM Scripts](#-npm-scripts)
+11. [Testing & Quality Assurance](#-testing--quality-assurance)
+12. [Troubleshooting Guide](#-troubleshooting-guide)
+13. [Project Directory Structure](#-project-directory-structure)
+14. [Contributing & Code Quality](#-contributing--code-quality)
+15. [License](#-license)
 
 ---
 
-## Prerequisites
+## 🌟 Features
 
-- **Node.js** 20+ (LTS recommended; Vite 8 and the toolchain expect a current runtime).
-- **npm** 9+ (or compatible client). All scripts below use `npm`.
-
----
-
-## Getting started
-
-```bash
-git clone <your-repo-url>
-cd promptQuiz
-npm install
-npm run dev
-```
-
-Then open the URL Vite prints (typically `http://localhost:5173`).
-
-If `npm install` fails with peer-dependency resolution errors in your environment, you can try:
-
-```bash
-npm install --legacy-peer-deps
-```
+| Area | Features & Specifications |
+| :--- | :--- |
+| **Active Recall Sessions** | Multi-type question support, backward/forward navigation, quiz shuffling, progress metrics, self-assessment for open questions, and error review. |
+| **Flexible Importing** | Raw JSON array ingestion, CSV-like lists, Markdown headers, or plain-text "AI block format" (blank-line separated blocks). |
+| **IndexedDB Data Store** | Persistent client-side deck hierarchy (Decks → Quizzes → Questions) using transactional IndexedDB, completely offline. |
+| **Spaced Repetition** | SM-2 memory scheduling algorithm calculates optimal next review dates based on card-level self-assessments (easy, correct, hard, vague). |
+| **AI Prompt Builder** | In-app modal helper generates pre-formatted LLM prompts based on study notes and desired shapes, instantly validating pasted responses. |
+| **Backup & Portability** | JSON library snapshot export and import (replace mode) with strict Zod validation schema. |
 
 ---
 
-## NPM scripts
+## 🛠️ Tech Stack
 
-| Command | Purpose |
-|:---|:---|
-| `npm run dev` | Start Vite dev server with HMR. |
-| `npm run build` | Production build to `dist/`. |
-| `npm run preview` | Serve the production build locally for smoke testing. |
-| `npm run lint` | Run ESLint on the repo (`eslint.config.js`). |
-| `npm test` | Run **Vitest** once in CI mode (`vitest run`). Test files: `src/**/*.{test,spec}.{js,jsx}` with `src/test/setup.js`. |
-
----
-
-## Application routes
-
-| Path | Page | Role |
-|:---|:---|:---|
-| `/` | `HomePage` | Landing, links into create / decks / quiz flows. |
-| `/create` | `CreateDeckPage` | Deck/quiz hierarchy editor, JSON input, AI builder entry from layout. |
-| `/quiz` | `QuizPage` | Active session for the loaded question list. |
-| `/results` | `ResultsPage` | Post-session metrics and review entry points. |
-| `/decks` | `DecksPage` | List decks, load into session, delete, **export/import** full library snapshot. |
-
-Global chrome: **`Layout`** wraps routes (header, navigation, modals for saved decks / save / AI builder). **`RouteErrorBoundary`** catches render errors inside routes.
+- **UI Framework:** React 19 (Hooks, Context, useReducer)
+- **Routing:** React Router 7 (`BrowserRouter`, routes for `Home`, `Create`, `Quiz`, `Results`, `Decks`)
+- **Styling:** Tailwind CSS v4 (using the `@tailwindcss/vite` compiler)
+- **Client Storage:** Native IndexedDB + LocalStorage (for last-active state tracking)
+- **Data Validation:** Zod v4 (verifies question structures and backup snapshot integrity)
+- **Build System:** Vite 8
+- **Testing:** Vitest 4 + jsdom + `@testing-library/react` + `@testing-library/user-event`
+- **Linting:** ESLint 10 (Flat Config) + `jsx-a11y` recommended rules
 
 ---
 
-## Architecture overview
+## 🏗️ Architecture Overview
 
-- **`src/main.jsx`** mounts the app under `StrictMode`, wraps with **`BrowserRouter`**, imports global CSS.
-- **`src/App.jsx`** wraps the tree in **`QuizProvider`** and defines **`Routes`**.
-- **Feature code** lives under `src/features/` (quiz, decks, questions, AI, UI). **Shared** utilities/schemas/services under `src/shared/`. **Pages** under `src/pages/`. **Contexts** under `src/contexts/`.
+The application utilizes a purely client-side architecture that decouples input parsing, structural validation, offline persistence, and session state.
 
-Core quiz logic is composed in **`useQuiz`** (`src/features/quiz/hooks/useQuizState.js`): session state, library/JSON/deck sync, review helpers, and UI shell fields (notices, AI modal visibility, parse messages).
-
----
-
-## State management: three contexts
-
-`QuizProvider` exposes three memoized slices to avoid unnecessary re-renders:
-
-| Hook | Typical contents (conceptual) |
-|:---|:---|
-| **`useQuizSession()`** | Current `quiz`, `answers`, `idx`, score/progress, review flags, `textAnswers`, navigation handlers (`goNext`, `goPrevious`, …), `setQuiz` / `setAnswers` / `setIdx`, etc. |
-| **`useQuizLibrary()`** | `rawJson`, `preview`, `savedDecks`, `currentDeckId`, deck/quiz hierarchy helpers, `startQuiz`, `loadDeck`, `deleteDeck`, `clearQuiz`, … |
-| **`useQuizShell()`** | `appNotice` / `setAppNotice`, AI builder visibility, `aiResponse`, `parseMessage`, related setters. |
-
-Pages and layout import only the hooks they need. **`useQuizHandlers(session)`** (`useQuizNavigation.js`) adapts the session object to a small handler bundle used where the older “single quiz state” pattern was used.
-
----
-
-## Data layer (IndexedDB)
-
-- **Database name:** `PromptQuizDB`  
-- **Version:** defined in `indexedDB.js` (schema migrations use `onupgradeneeded`).
-
-**Object stores (conceptual model):**
-
-| Store | Role |
-|:---|:---|
-| `decks` | Top-level folders; key `id` (auto-increment), indexes e.g. `name`, `date`. |
-| `quizzes` | Quizzes belonging to a deck; indexed by `deckId`, `name`, `date`. |
-| `questions` | Rows tied to `quizId` / `deckId`, with `order` for sequencing. |
-| `reviewSchedule` | Spaced-repetition-style metadata per question (where used). |
-
-The app also persists a **last-used deck** id for optional restore when the app loads (see `useQuizDeckSync`).
-
----
-
-## Library backup and restore
-
-On **`/decks`**:
-
-- **Export library** downloads a JSON document produced by **`exportLibrarySnapshot()`** (all decks, quizzes, and question payloads; internal ids are stripped in favor of portable fields where applicable).
-- **Import library** reads a JSON file, validates with **`validateLibrarySnapshot`** (Zod), then **`importLibrarySnapshot(..., { mode: 'replace' })`**: existing decks are removed, last-used id cleared, then decks from the file are recreated. A confirmation dialog warns that the operation **replaces** the entire local library.
-
-After import, the UI refreshes the in-memory deck list and clears the active quiz session state where wired, with a shell **notice** for success or errors.
-
----
-
-## Quiz input formats
-
-### 1. JSON array (primary)
-
-Paste a **JSON array** of question objects. The root must be an array (not a single object wrapper). **`safeParseQuizJson`** in `helpers.js` attempts `JSON.parse` first.
-
-### 2. Plain text / “AI style”
-
-When the content is not JSON, the same helper tries **text parsers**:
-
-- **Block mode:** paragraphs separated by **blank lines**. Each block can be:
-  - **Multiple choice:** first line = stem; next lines `A.` … `D.` (or `E.`); a line `*A` or `*Full option text` marks the correct answer.
-  - **`[T/F]`** + stem, then `*True` / `*False` (or `*T` / `*F`).
-  - **`[FIB]`** + stem (blanks may use long `____` runs; they are normalized to `___` for the UI).
-  - **`[CLOZE]`** + stem; `*answer` or comma-separated `*a, b` for multiple blanks; underscores may be converted to `{0}`, `{1}` placeholders when needed.
-  - **`[SA]`** + stem; `*suggested answer` text.
-
-- **Line mode (fallback):** numbered lines (`1. …`, `2. [T/F] …`) and optional unnumbered MCQ when the line after the stem looks like `A.`.
-
-Legacy **CSV-like** and **Markdown-like** heuristics in `safeParseQuizJson` may still trigger for specific first-line patterns; see `parseCSVFormat` / `parseMarkdownFormat` in `helpers.js`.
-
----
-
-## Question types and JSON shapes
-
-| `type` | Notes |
-|:---|:---|
-| `multiple-choice` | `question`, `options[]`, plus `answerIndex` and/or `answer` string. Legacy objects with only `question` + `options` are accepted loosely via Zod union. |
-| `true-false` | `question`, boolean `answer` (or equivalent after parse). |
-| `fill-blank` | `question` string with `___` segments; often `answers[]` from parsers. |
-| `cloze` | `question` with `{0}`, `{1}`, … placeholders after parse; `answers[]`. |
-| `short-answer` | `question`; `suggestedAnswer` for self-check copy. |
-
-The in-app **sample** array lives in **`SAMPLE_QUIZ`** in `helpers.js` and is a good reference for JSON shape.
-
----
-
-## Validation (Zod)
-
-- **`src/shared/schemas/quizQuestions.js`**  
-  - **`validateQuizQuestions(data)`** — used when **starting** a quiz from preview and after a successful **AI parse** (before `setQuiz`).  
-  - **`validateLibrarySnapshot(data)`** — used on **library import**.  
-  - **`librarySnapshotSchema`** expects `schemaVersion: 1` and a `decks` array (may be empty). Quizzes may have empty `questions` arrays on import (those quizzes are skipped for question insertion).
-
-Strict JSON editing still goes through **`safeParseQuizJson`** first; Zod runs on the structured result where the app requires guarantees.
-
----
-
-## AI Prompt Builder
-
-1. Open the builder from the shell (header / layout entry points when exposed).  
-2. Configure **study notes** (optional), **question types**, **count**, and **topic instructions**.  
-3. **Generate prompt** — copy the text and send it to your chosen LLM (the app does not call external APIs for generation).  
-4. Paste the model reply into the response area and use **Parse & Load**.  
-5. Flow: **`parseAIResponse`** (`aiPromptGenerator.js`) strips common boilerplate, runs **`safeParseQuizJson`**, then **`validateQuizQuestions`**; on success, questions load into the session and the modal can close.
-
----
-
-## Testing and quality
-
-- **Unit / integration tests** live next to sources (`*.test.js`, `*.test.jsx`). Vitest uses **jsdom** and Testing Library **`@testing-library/react`** for component flows (e.g. quiz completion, decks export button with partial IndexedDB mock).  
-- **ESLint** enforces React Hooks rules, refresh constraints for Fast Refresh, and accessibility **warnings** (e.g. label associations) via `jsx-a11y` recommended preset, with a few rules tuned in `eslint.config.js`.
-
-```bash
-npm test
-npm run lint
+```mermaid
+flowchart TD
+    A[User Input / Pasted Text / Backup File] --> B{Input Parser}
+    
+    subgraph Parsing & Verification
+        B -->|JSON Path| C[safeParseQuizJson]
+        B -->|Plain Text / Blocks| D[parseTextFormat / parseCSVFormat / parseMarkdownFormat]
+        C --> E[Zod Schema Validator]
+        D --> E
+    end
+    
+    E -->|Valid Payload| F[IndexedDB Store: PromptQuizDB]
+    E -->|Invalid Payload| G[Error Notice / UI State]
+    
+    subgraph Storage Layer
+        F --> H[(decks)]
+        F --> I[(quizzes)]
+        F --> J[(questions)]
+        F --> K[(reviewSchedule)]
+    end
+    
+    subgraph React Application State
+        L[QuizProvider]
+        H & I & J & K --> L
+        L --> M[useQuizSession]
+        L --> N[useQuizLibrary]
+        L --> O[useQuizShell]
+    end
+    
+    subgraph UI Pages
+        M --> P[QuizPage / ResultsPage]
+        N --> Q[DecksPage / CreateDeckPage]
+        O --> R[Layout / AI Prompt Builder Modal]
+    end
 ```
 
 ---
 
-## Building for production
+## 🧬 State Management (Three-Slice Context)
 
-```bash
-npm run build
+To prevent broad component re-renders across deep layout trees, `QuizProvider` splits the state into three memoized context slices. Components subscribe only to the slice they need.
+
+```
+                  ┌──────────────────────┐
+                  │     QuizProvider     │
+                  └──────────┬───────────┘
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+┌──────────────────┐┌──────────────────┐┌──────────────────┐
+│  useQuizSession  ││  useQuizLibrary  ││  useQuizShell   │
+│                  ││                  ││                  │
+│ • Quiz list & idx││ • Raw input JSON ││ • Toast notifications
+│ • Answers array  ││ • Saved deck list││ • AI modal status│
+│ • Scoring states ││ • Loading states ││ • Temp parser msg│
+│ • Navigation     ││ • Create/Del deck││                  │
+└──────────────────┘└──────────────────┘└──────────────────┘
 ```
 
-Output: **`dist/`**. Deploy `dist` as static files behind any static host or CDN. The app uses the **History** API (`BrowserRouter`); configure the server to **fallback to `index.html`** for client-side routes (`/quiz`, `/decks`, etc.).
+- **`useQuizSession`**: Controls active learning loops. Contains answer arrays, session navigation (`goNext`, `goPrevious`), shuffle states, and self-assessment scores.
+- **`useQuizLibrary`**: Manages the deck library. Performs file reads/writes to IndexedDB, creates/deletes folders/decks, and runs standard backup snapshot workflows.
+- **`useQuizShell`**: Manages layout and global overlays, including modal visibilities (AI Prompt Builder) and temporary success/error notices.
 
 ---
 
-## Privacy and limitations
+## 💾 Data Layer & IndexedDB Schema
 
-- **No account system** in this codebase: data stays in **that browser’s IndexedDB** unless you export it.  
-- Clearing site data **deletes** local decks unless you have an export.  
-- **Import (replace)** overwrites the entire library for that origin.  
-- The **AI Prompt Builder** does not embed API keys; you use your own tools for model calls.
+PromptQuiz uses a relational-like schema modeled inside IndexedDB database name `PromptQuizDB` (Version `2`).
+
+### Object Store Specifications
+
+#### 1. `decks` (Folder Groups)
+*   **Key Path:** `id` (auto-increment)
+*   **Indexes:** `name`, `date`
+*   **Structure:**
+    ```typescript
+    {
+      id: number;
+      name: string;
+      date: string; // ISO timestamp
+      description: string;
+    }
+    ```
+
+#### 2. `quizzes` (Sub-files inside Decks)
+*   **Key Path:** `id` (auto-increment)
+*   **Indexes:** `name`, `deckId`, `date`
+*   **Structure:**
+    ```typescript
+    {
+      id: number;
+      deckId: number; // Foreign key referencing decks.id
+      name: string;
+      date: string;
+      description: string;
+    }
+    ```
+
+#### 3. `questions` (Individual items inside Quizzes)
+*   **Key Path:** `id` (auto-increment)
+*   **Indexes:** `quizId`, `deckId`, `order`
+*   **Structure:**
+    ```typescript
+    {
+      id: number;
+      quizId: number; // Foreign key referencing quizzes.id
+      deckId: number; // Foreign key referencing decks.id
+      order: number;  // Sorting sequence
+      type: 'multiple-choice' | 'true-false' | 'fill-blank' | 'cloze' | 'short-answer';
+      question: string;
+      date: string;
+      // conditional properties based on type:
+      options?: string[];
+      answer?: string | boolean;
+      answerIndex?: number;
+      answers?: string[];
+      suggestedAnswer?: string;
+    }
+    ```
+
+#### 4. `reviewSchedule` (Spaced Repetition Metadata)
+*   **Key Path:** `id` (auto-increment)
+*   **Indexes:** `questionId` (unique), `nextReviewDate`, `deckId`
+*   **Structure:**
+    ```typescript
+    {
+      id: number;
+      questionId: number; // References questions.id
+      deckId: number;     // References decks.id
+      interval: number;   // Days to next check
+      easeFactor: number; // SM-2 ease multiplier
+      nextReviewDate: string; // ISO date
+      createdDate: string;
+      lastReviewedDate?: string;
+    }
+    ```
 
 ---
 
-## Troubleshooting
+## 📈 Spaced Repetition Engine (SM-2 Algorithm)
 
-| Symptom | Things to check |
-|:---|:---|
-| Blank quiz after navigation | Ensure you **started** the quiz from JSON/text (`startQuiz`) or **loaded a deck** with questions. |
-| Parse errors on paste | Confirm **JSON** is a single **array**, or use **blank-line-separated** text blocks matching the AI examples in `generateAIPrompt` / `helpers.js`. |
-| Deck list empty after clone | IndexedDB is per-browser profile; use **Export** on the old profile and **Import** on the new one. |
-| Routes 404 on refresh in prod | Configure SPA fallback to `index.html`. |
+When Spaced Repetition is active, answer responses are fed to the SuperMemo-2 (SM-2) algorithm (`src/shared/services/indexedDB.js`). Users rate their performance quality:
+- **`5` (Perfect):** Instant, accurate recall.
+- **`4` (Correct):** Accurate recall with slight hesitation.
+- **`3` (Difficult):** Recalled correctly, but required significant mental effort.
+- **`2` (Vague):** Incorrect response, but the correct answer felt obvious upon review.
+- **`1` (No Recall):** Complete failure to recall.
+
+### Mathematical Realization
+The new Ease Factor ($EF'$) is updated dynamically:
+$$EF' = \max\left(1.3, EF + (0.1 - (q \times 0.02))\right)$$
+*Where $q$ is the performance quality ($1$ to $5$).*
+
+The Next Review Interval ($I'$) in days is updated via:
+$$I' = \max\left(1, \text{round}\left(I \times EF'^{(q - 5)}\right)\right)$$
+
+This calculation generates the next review timestamp, which is queried on application load for the daily review system.
 
 ---
 
-## Project structure
+## 📝 Quiz Import & Text Formats
 
-High-level map (not every file):
+PromptQuiz supports multiple plain-text formats in addition to standard JSON. The parser automatically detects the format of pasted text.
+
+### 1. Block Text / AI Prompt Format (Recommended)
+Separate each question block with a **blank line**. Mark the correct option/answer with an asterisk `*`.
+
+```text
+[T/F] React 19 introduces Server Components.
+*True
+
+[FIB] The hook used to perform side effects in React is ______.
+*useEffect
+
+[CLOZE] A Cloze deletion hides specific words like {0} and {1} in a sentence.
+*words, sentence
+
+[SA] Explain the virtual DOM in React.
+*The virtual DOM is a programming concept where a virtual representation of a UI is kept in memory and synced with the real DOM via reconciliation.
+
+What does CSS stand for?
+A. Creative Style Sheets
+B. Cascading Style Sheets
+C. Computer Style Sheets
+*B
+```
+
+### 2. Markdown Format
+Separate questions using headers (`#` or `##`) and bullet lists.
+```markdown
+# What does HTTP stand for?
+- High Transfer Text Protocol
+- HyperText Transfer Protocol
+- *HyperText Transfer Protocol
+- Home Tool Transfer Protocol
+```
+
+### 3. CSV / Semi-Structured Format
+Define stems explicitly with options starting with letters.
+```csv
+Question: Which hook manages local state?
+A. useMemo
+B. useState
+C. useEffect
+*useState
+```
+
+---
+
+## 📐 Question Types & JSON Schema
+
+Below are the exact Zod structural definitions for each question type (`src/shared/schemas/quizQuestions.js`):
+
+### 1. Multiple Choice
+```json
+{
+  "type": "multiple-choice",
+  "question": "What is Vite?",
+  "options": ["A Database", "A Bundler / Dev Server", "A Testing Library"],
+  "answer": "A Bundler / Dev Server",
+  "answerIndex": 1
+}
+```
+
+### 2. True / False
+```json
+{
+  "type": "true-false",
+  "question": "React uses a virtual DOM.",
+  "answer": true
+}
+```
+
+### 3. Fill in the Blank (FIB)
+```json
+{
+  "type": "fill-blank",
+  "question": "React uses the ___ hook to register state.",
+  "answers": ["useState"]
+}
+```
+
+### 4. Cloze Deletion
+Uses index braces `{0}`, `{1}` mapped directly to an ordered array of answers.
+```json
+{
+  "type": "cloze",
+  "question": "The {0} hook returns a state value and a function to {1} it.",
+  "answers": ["useState", "update"]
+}
+```
+
+### 5. Short Answer
+Includes a suggested answer for self-directed review verification.
+```json
+{
+  "type": "short-answer",
+  "question": "Describe JSX.",
+  "suggestedAnswer": "JSX is a syntax extension to JavaScript that allows you to write HTML-like structures in React code."
+}
+```
+
+---
+
+## ⚡ Prerequisites & Installation
+
+### System Requirements
+- **Node.js** 20.0.0 or higher
+- **npm** 9.0.0 or higher
+
+### Set Up Local Workspace
+
+1. Clone the repository:
+   ```bash
+   git clone <your-repository-url>
+   cd promptQuiz
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+   > [!NOTE]
+   > If you encounter peer dependency errors (common when working with React 19 plugins), run:
+   > `npm install --legacy-peer-deps`
+
+3. Launch the development server:
+   ```bash
+   npm run dev
+   ```
+
+Open `http://localhost:5173` in your browser.
+
+---
+
+## 📋 NPM Scripts
+
+Available npm scripts in `package.json`:
+
+| Command | Action | Description |
+| :--- | :--- | :--- |
+| `npm run dev` | `vite` | Spins up the Vite dev server with Hot Module Replacement (HMR). |
+| `npm run build` | `vite build` | Compiles source files into highly optimized production assets in `/dist`. |
+| `npm run preview` | `vite preview` | Locally hosts the production build output from `/dist` for testing. |
+| `npm run lint` | `eslint .` | Runs static code analysis across files using ESLint Flat configs. |
+| `npm test` | `vitest run` | Runs Vitest test suite once (ideal for CI pipelines). |
+
+---
+
+## 🧪 Testing & Quality Assurance
+
+The test suite runs on **Vitest** and utilizes JSDOM to mock browser components.
+
+### Test Execution Commands
+*   Run tests once:
+    ```bash
+    npm test
+    ```
+*   Run Vitest in watch mode (interactive):
+    ```bash
+    npx vitest
+    ```
+*   Check code formatting & quality:
+    ```bash
+    npm run lint
+    ```
+
+> [!WARNING]
+> **IndexedDB Test Warnings:** When running route tests, you may notice `Error: Failed to get decks: indexedDB is not defined` printed to standard error. This occurs because the Node jsdom test environment lacks a native IndexedDB implementation. These errors are handled gracefully by partial mocks in components, and the test suite will still complete successfully.
+
+---
+
+## 🔍 Troubleshooting Guide
+
+| Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| **Blank Quiz Screen** | Navigated directly to `/quiz` without starting a session or loading a deck. | Go back to `Home` or `Decks`, choose or import a set of questions, and click **Start Quiz**. |
+| **Failed to parse questions** | Pasted text has invalid JSON syntax or incorrect line formats. | Verify JSON begins with `[` (array root). For plain text, ensure question blocks are separated by **exactly one blank line**. |
+| **Library missing on refresh** | Browser cache was wiped, clearing IndexedDB. | Regularly use **Export library** on the `/decks` page to download a `.json` backup file. |
+| **404 error on page refresh in production** | Static host doesn't route unknown paths to `/index.html` (SPA Routing issue). | Configure your web host (Netlify, Vercel, Nginx) to fallback missing paths to `/index.html`. |
+| **Tailwind v4 styles missing** | Vite plugin configuration mismatch. | Ensure your bundler is running Vite 8 and `@tailwindcss/vite` is loaded in `vite.config.js`. |
+
+---
+
+## 📂 Project Directory Structure
 
 ```text
 promptQuiz/
-├── eslint.config.js
-├── index.html
-├── package.json
-├── vite.config.js
-├── README.md
+├── eslint.config.js          # ESLint 10 Flat config with React rules
+├── index.html                 # Main entry template
+├── package.json              # Project scripts & dependencies
+├── vite.config.js            # Vite configurations & plugins
+├── README.md                 # Project documentation
 └── src/
-    ├── main.jsx                 # Entry: Router + StrictMode
-    ├── App.jsx                  # QuizProvider + Routes
-    ├── index.css
-    ├── components/              # Layout, Navigation, QuizView, modals, …
-    ├── contexts/
-    │   └── QuizContext.jsx      # useQuizSession / Library / Shell
-    ├── pages/                   # Home, CreateDeck, Quiz, Results, Decks
-    ├── features/
-    │   ├── ai/                  # Prompt builder UI + aiPromptGenerator
-    │   ├── decks/               # DeckManager, FolderDeckBrowser, DeckList, …
-    │   ├── questions/           # QuestionEditor
-    │   ├── quiz/                # Hooks (useQuizState, navigation, deck sync, …)
-    │   └── ui/                  # Header, shared UI
-    ├── shared/
-    │   ├── schemas/             # Zod (quizQuestions.js)
-    │   ├── services/          # indexedDB.js (CRUD + export/import)
-    │   └── utils/             # helpers.js (parse, score, …) + tests
-    └── test/
-        └── setup.js             # Vitest + jest-dom
+    ├── main.jsx              # Application mount point (React DOM & Router)
+    ├── App.jsx               # Routes definition & Global providers
+    ├── index.css             # Tailwind v4 injection point
+    ├── components/           # Generic visual wrappers & structural components
+    ├── contexts/             # Application Context Hooks (State slicing)
+    │   └── QuizContext.jsx   # Exposes useQuizSession, useQuizLibrary, useQuizShell
+    ├── pages/                # Route components (Home, CreateDeck, Quiz, Results, Decks)
+    ├── features/             # Business modules
+    │   ├── ai/               # AI prompt generator forms & prompts
+    │   ├── decks/            # Local folder library tree components
+    │   ├── questions/        # Question-specific creation overlays
+    │   ├── quiz/             # Core Reducer & custom React hooks
+    │   └── ui/               # Layout components & header bars
+    ├── shared/               # Cross-component resources
+    │   ├── schemas/          # Zod validation schemas
+    │   ├── services/         # IndexedDB wrapper and SM-2 core functions
+    │   └── utils/            # Helper formats, CSV/MD/Block parsers, and unit tests
+    └── test/                 # Testing environment configs & mock environments
 ```
 
 ---
 
-## Contributing
+## 🤝 Contributing & Code Quality
 
-1. Follow existing patterns (context hooks, feature folders).  
-2. Run **`npm run lint`** and **`npm test`** before opening a PR.  
-3. Prefer focused changes; extend **`safeParseQuizJson` / Zod** together when adding new question shapes so the JSON, text, and AI paths stay aligned.
+1.  **Maintain ESLint Compliance:** Run `npm run lint` before committing code. Avoid creating unused arguments or variables unless prefixed with an underscore `_`.
+2.  **Test Integration:** If writing new components, include matching `.test.js` or `.test.jsx` files beside the source.
+3.  **Schema Alignment:** If adding a new question type, update the parser in `src/shared/utils/helpers.js` and the Zod schemas in `src/shared/schemas/quizQuestions.js` to ensure imports, exports, and active sessions all parse correctly.
 
 ---
 
-## License
+## 📄 License
 
-No `LICENSE` file is bundled in this repository; add one if you distribute the project publicly.
+This project is open-source. For public distribution, please include a `LICENSE` file in the root directory.

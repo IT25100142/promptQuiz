@@ -11,6 +11,7 @@ describe('validateQuizQuestions', () => {
         type: 'multiple-choice',
         question: 'Pick one',
         options: ['a', 'b'],
+        answer: 'a',
         answerIndex: 0,
       },
     ]
