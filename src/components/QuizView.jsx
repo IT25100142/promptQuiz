@@ -1,7 +1,5 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { cx } from '../shared/utils/helpers.js'
-import QuizToolbar from './QuizToolbar.jsx'
-import ProgressBar from './ProgressBar.jsx'
 import CardOverviewModal from './CardOverviewModal.jsx'
 import { calculateNextReview } from '../shared/services/sm2.js'
 import { initDB } from '../shared/services/db.js'
@@ -38,6 +36,8 @@ export default function QuizView({
   jumpToQuestion,
   quiz
 }) {
+  const [hoveredRating, setHoveredRating] = useState(null);
+
   const handleSM2Rating = async (rating) => {
     try {
       const db = await initDB();
@@ -143,31 +143,47 @@ export default function QuizView({
   const isFlipped = !!(isAnswered() || showSuggestedAnswer[idx]);
 
   return (
-    <main className="flex flex-1 flex-col py-6 w-full max-w-3xl mx-auto">
-      {/* Top persistent control panel */}
-      <div className="w-full rounded-2xl border border-slate-900/5 dark:border-white/10 bg-white dark:bg-slate-900/70 dark:backdrop-blur-md p-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)] sm:p-5 transition-colors duration-200 mb-6">
-        <QuizToolbar
-          shuffleMode={shuffleMode}
-          keepFirstQuestion={keepFirstQuestion}
-          toggleShuffleMode={toggleShuffleMode}
-          toggleKeepFirstQuestion={toggleKeepFirstQuestion}
-          onShowCardOverview={() => setShowCardOverview(true)}
-          total={total}
-        />
+    <main className="flex flex-1 flex-col py-8 w-full max-w-3xl mx-auto px-4 md:px-0 font-sans relative">
+      {/* Live Monospace Session Log */}
+      <div className="absolute top-0 left-0 right-0 w-full flex items-center justify-between px-4 py-2 text-[8px] font-mono tracking-widest text-emerald-600/70 dark:text-emerald-400/70 uppercase">
+        <span className="flex items-center gap-2">
+          <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
+          [STATUS: ACTIVE_RECALL]
+        </span>
+        <span className="flex gap-4">
+          <span>[DB: CONNECTED]</span>
+          <span>[INTERVAL: SM2_READY]</span>
+        </span>
+      </div>
 
-        <ProgressBar
-          idx={idx}
-          total={total}
-          progress={progress}
-          answeredCount={answeredCount}
-          score={score}
-          isReviewMode={isReviewMode}
-          incorrectQuestions={incorrectQuestions}
-        />
+      {/* Editorial Mini Metadata & Control Bar */}
+      <div className="flex justify-between items-center w-full px-1 mb-8 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-555 uppercase select-none">
+        <span className="flex items-center gap-1.5">
+          Card <span className="text-slate-800 dark:text-slate-205 font-bold">{String(idx + 1).padStart(2, '0')}</span> / <span className="font-semibold">{String(total).padStart(2, '0')}</span>
+        </span>
+        <div className="flex items-center gap-6 font-medium">
+          <button
+            type="button"
+            onClick={() => setShowCardOverview(true)}
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={toggleShuffleMode}
+            className={cx(
+              "transition-colors cursor-pointer",
+              shuffleMode ? "text-indigo-600 dark:text-indigo-400 font-bold" : "hover:text-indigo-600 dark:hover:text-indigo-400"
+            )}
+          >
+            Shuffle: {shuffleMode ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </div>
 
       {/* 3D Perspective Card Flip Container */}
-      <div className="w-full [perspective:1000px] mb-6">
+      <div className="w-full [perspective:1000px] mb-8">
         <div
           className="relative w-full transition-transform duration-700 [transform-style:preserve-3d]"
           style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)', transformStyle: 'preserve-3d' }}
@@ -175,32 +191,38 @@ export default function QuizView({
           {/* Front Side */}
           <div
             className={cx(
-              "w-full rounded-3xl border border-slate-900/5 dark:border-white/10 bg-white dark:bg-slate-900/70 dark:backdrop-blur-md p-8 sm:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.03)] dark:shadow-none transition-all duration-300",
+              "w-full rounded-3xl premium-glass p-12 sm:p-20 md:p-24 transition-all duration-300 overflow-hidden",
               isFlipped ? "pointer-events-none absolute inset-0 opacity-0" : "relative opacity-100"
             )}
             style={{ backfaceVisibility: 'hidden' }}
           >
+            {/* Corner Crosshairs */}
+            <div className="absolute top-4 left-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute top-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute bottom-4 left-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute bottom-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
             {!isFlipped && (
               <>
-                <h2 className="text-2xl font-semibold leading-snug tracking-tight sm:text-3xl text-slate-900 dark:text-slate-100">
+                <h2 className="font-serif text-3xl sm:text-4xl leading-relaxed tracking-wide text-slate-900 dark:text-slate-100">
                   <MarkdownRenderer text={current.question} />
                 </h2>
 
-                <div className="mt-6">
+                <div className="mt-12">
                   {/* Multiple Choice */}
                   {current.type === 'multiple-choice' && (
-                    <div className="grid gap-3">
+                    <div className="flex flex-col gap-4">
                       {current.options.map((option, optionIdx) => (
                         <button
                           key={option}
                           type="button"
                           onClick={() => choose(optionIdx)}
-                          className="grid min-h-14 w-full grid-cols-[32px_1fr] items-center gap-3 rounded-xl border border-slate-900/5 dark:border-white/5 px-3 py-3 text-left text-sm font-semibold transition-all duration-200 hover:scale-[1.01] focus:scale-[1.01] cursor-pointer bg-slate-50/50 dark:bg-slate-950/40 text-slate-900 dark:text-slate-100 hover:ring-1 hover:ring-indigo-500/30 focus:ring-1 focus:ring-indigo-500/30 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 hover:border-transparent dark:hover:border-transparent focus:outline-none"
+                          className="w-full border-l-2 border-l-transparent px-3 py-4 text-left text-sm font-semibold transition-all duration-150 hover:bg-slate-900/5 focus:bg-slate-900/5 dark:hover:bg-white/5 dark:focus:bg-white/5 hover:border-l-indigo-600 focus:border-l-indigo-600 bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none flex items-start gap-3 group relative"
                         >
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-slate-900 text-xs font-bold text-slate-700 dark:text-slate-350 shadow-sm border border-slate-900/5 dark:border-white/5">
-                            {String.fromCharCode(65 + optionIdx)}
+                          <span className="font-mono text-xs text-slate-400 dark:text-slate-500 select-none mt-0.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center">
+                            <span className="opacity-0 group-hover:opacity-100 -ml-3 group-hover:ml-0 transition-all duration-150 mr-1 overflow-hidden w-0 group-hover:w-auto inline-block">→</span >
+                            {String.fromCharCode(65 + optionIdx)}/
                           </span>
-                          <span className="text-left">
+                          <span className="text-left leading-relaxed font-normal text-slate-800 dark:text-slate-200">
                             <MarkdownRenderer text={option} />
                           </span>
                         </button>
@@ -210,15 +232,19 @@ export default function QuizView({
 
                   {/* True/False */}
                   {current.type === 'true-false' && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-4">
                       {['True', 'False'].map((option, optionIdx) => (
                         <button
                           key={option}
                           type="button"
                           onClick={() => choose(optionIdx)}
-                          className="min-h-14 rounded-xl border border-slate-900/5 dark:border-white/5 px-4 py-3 text-sm font-semibold transition-all duration-200 hover:scale-[1.01] focus:scale-[1.01] cursor-pointer bg-slate-50/50 dark:bg-slate-950/40 text-slate-900 dark:text-slate-100 hover:ring-1 hover:ring-indigo-500/30 focus:ring-1 focus:ring-indigo-500/30 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 hover:border-transparent dark:hover:border-transparent focus:outline-none"
+                          className="w-full border-l-2 border-l-transparent px-3 py-4 text-left text-sm font-semibold transition-all duration-150 hover:bg-slate-900/5 focus:bg-slate-900/5 dark:hover:bg-white/5 dark:focus:bg-white/5 hover:border-l-indigo-600 focus:border-l-indigo-600 bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none flex items-center gap-3 group relative"
                         >
-                          {option}
+                          <span className="font-mono text-xs text-slate-400 dark:text-slate-500 select-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center">
+                            <span className="opacity-0 group-hover:opacity-100 -ml-3 group-hover:ml-0 transition-all duration-150 mr-1 overflow-hidden w-0 group-hover:w-auto inline-block">→</span >
+                            {optionIdx === 0 ? '01' : '02'}/
+                          </span>
+                          <span className="font-normal text-slate-800 dark:text-slate-200">{option}</span>
                         </button>
                       ))}
                     </div>
@@ -226,8 +252,8 @@ export default function QuizView({
 
                   {/* Fill in the Blank */}
                   {current.type === 'fill-blank' && (
-                    <div className="space-y-4">
-                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100">
+                    <div className="space-y-6">
+                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 font-normal">
                         {current.question.split('___').map((part, partIdx) => (
                           <span key={partIdx}>
                             {part}
@@ -237,7 +263,7 @@ export default function QuizView({
                                 value={textAnswers[idx] || ''}
                                 onChange={(e) => handleTextAnswer(e.target.value)}
                                 placeholder="answer"
-                                className="mx-2 inline-block w-32 rounded-lg border border-transparent bg-slate-150/80 dark:bg-slate-955/65 px-3 py-1 text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100"
+                                className="mx-2 inline-block w-32 border-b border-slate-350 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
                               />
                             )}
                           </span>
@@ -247,9 +273,9 @@ export default function QuizView({
                         <button
                           type="button"
                           onClick={submitTextAnswer}
-                          className="rounded-lg bg-indigo-650 hover:bg-indigo-550 px-4 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] inline-flex items-center gap-1.5 focus:outline-none"
+                          className="text-[10px] font-mono tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-550 transition-colors uppercase inline-flex items-center gap-2 focus:outline-none cursor-pointer font-bold"
                         >
-                          Submit Answer <kbd className="text-[10px] bg-indigo-700/50 border border-indigo-500/30 rounded px-1 text-indigo-200">Space</kbd>
+                          Submit Answer <kbd className="text-[9px] font-normal rounded px-1.5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 text-indigo-500">Space</kbd>
                         </button>
                       )}
                     </div>
@@ -257,8 +283,8 @@ export default function QuizView({
 
                   {/* Cloze Deletion */}
                   {current.type === 'cloze' && (
-                    <div className="space-y-4">
-                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100">
+                    <div className="space-y-6">
+                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 font-normal">
                         {current.question.split(/\{\d+\}/).map((part, partIdx) => (
                           <span key={partIdx}>
                             {part}
@@ -268,7 +294,7 @@ export default function QuizView({
                                 value={textAnswers[`${idx}-${partIdx}`] || ''}
                                 onChange={(e) => handleTextAnswer(e.target.value, partIdx)}
                                 placeholder={current.answers[partIdx] || 'answer'}
-                                className="mx-2 inline-block w-32 rounded-lg border border-transparent bg-slate-150/80 dark:bg-slate-955/65 px-3 py-1 text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100"
+                                className="mx-2 inline-block w-32 border-b border-slate-350 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
                               />
                             )}
                           </span>
@@ -283,9 +309,9 @@ export default function QuizView({
                           <button
                             type="button"
                             onClick={submitTextAnswer}
-                            className="rounded-lg bg-indigo-650 hover:bg-indigo-550 px-4 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] inline-flex items-center gap-1.5 focus:outline-none"
+                            className="text-[10px] font-mono tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-550 transition-colors uppercase inline-flex items-center gap-2 focus:outline-none cursor-pointer font-bold"
                           >
-                            Submit Answer <kbd className="text-[10px] bg-indigo-700/50 border border-indigo-500/30 rounded px-1 text-indigo-200">Space</kbd>
+                            Submit Answer <kbd className="text-[9px] font-normal rounded px-1.5 bg-indigo-50 dark:bg-indigo-955 border border-indigo-200 dark:border-indigo-900 text-indigo-500">Space</kbd>
                           </button>
                         )
                       })()}
@@ -294,21 +320,21 @@ export default function QuizView({
 
                   {/* Short Answer */}
                   {current.type === 'short-answer' && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <textarea
                         value={textAnswers[idx] || ''}
                         onChange={(e) => handleTextAnswer(e.target.value)}
                         placeholder="Type your answer here..."
                         rows={4}
-                        className="w-full rounded-xl border border-transparent bg-slate-100/50 dark:bg-slate-950/60 px-4 py-3 text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500/30 focus-visible:bg-white dark:focus-visible:bg-slate-900 focus-visible:border-transparent text-slate-900 dark:text-slate-100"
+                        className="w-full rounded-xl border border-slate-205 dark:border-slate-800 bg-transparent px-4 py-3 text-sm font-medium transition-all duration-305 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
                       />
                       
                       <button
                         type="button"
                         onClick={toggleSuggestedAnswer}
-                        className="rounded-lg border border-slate-900/10 dark:border-white/10 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-850 transition-all inline-flex items-center gap-1.5 focus:outline-none"
+                        className="text-[10px] font-mono tracking-widest text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors uppercase inline-flex items-center gap-2 focus:outline-none cursor-pointer"
                       >
-                        Reveal Model Answer <kbd className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-205 dark:border-slate-700 rounded px-1 text-slate-400 dark:text-slate-500">Space</kbd>
+                        Reveal Model Answer <kbd className="text-[9px] font-normal rounded px-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500">Space</kbd>
                       </button>
                     </div>
                   )}
@@ -320,21 +346,26 @@ export default function QuizView({
           {/* Back Side */}
           <div
             className={cx(
-              "w-full rounded-3xl border border-slate-900/5 dark:border-white/10 bg-white dark:bg-slate-900/70 dark:backdrop-blur-md p-8 sm:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.03)] dark:shadow-none transition-all duration-300",
+              "w-full rounded-3xl premium-glass p-12 sm:p-20 md:p-24 transition-all duration-300 overflow-hidden",
               isFlipped ? "relative opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
             )}
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
+            {/* Corner Crosshairs */}
+            <div className="absolute top-4 left-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute top-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute bottom-4 left-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
+            <div className="absolute bottom-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none">+</div>
             {isFlipped && (
               <>
-                <h2 className="text-2xl font-semibold leading-snug tracking-tight sm:text-3xl text-slate-900 dark:text-slate-100">
+                <h2 className="font-serif text-3xl sm:text-4xl leading-relaxed tracking-wide text-slate-900 dark:text-slate-100">
                   <MarkdownRenderer text={current.question} />
                 </h2>
 
-                <div className="mt-6">
+                <div className="mt-12">
                   {/* Multiple Choice */}
                   {current.type === 'multiple-choice' && (
-                    <div className="grid gap-3">
+                    <div className="flex flex-col gap-4">
                       {current.options.map((option, optionIdx) => {
                         const answered = answers[idx] !== null
                         const isSelected = answers[idx] === optionIdx
@@ -342,10 +373,10 @@ export default function QuizView({
                         const isWrongSelected = answered && isSelected && !isCorrect
 
                         const variant = isCorrect
-                          ? 'border-emerald-500/20 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
+                          ? 'border-l-2 border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
                           : isWrongSelected
-                            ? 'border-rose-500/20 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-805 dark:text-rose-300'
-                            : 'border-slate-900/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300'
+                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-455'
+                            : 'border-l-2 border-l-transparent text-slate-400 dark:text-slate-500 opacity-50'
 
                         return (
                           <button
@@ -353,14 +384,14 @@ export default function QuizView({
                             type="button"
                             disabled={true}
                             className={cx(
-                              'grid min-h-14 w-full grid-cols-[32px_1fr] items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm font-semibold cursor-default',
+                              'w-full px-2 py-4 text-left text-sm font-semibold cursor-default bg-transparent flex items-start gap-3',
                               variant,
                             )}
                           >
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/80 dark:bg-slate-900/80 text-xs font-bold text-slate-700 dark:text-slate-300 border border-slate-900/5 dark:border-white/5">
-                              {String.fromCharCode(65 + optionIdx)}
+                            <span className="font-mono text-xs opacity-60 select-none mt-0.5">
+                              {String.fromCharCode(65 + optionIdx)}/
                             </span>
-                            <span className="text-left">
+                            <span className="text-left leading-relaxed font-normal text-slate-700 dark:text-slate-300">
                               <MarkdownRenderer text={option} />
                             </span>
                           </button>
@@ -371,7 +402,7 @@ export default function QuizView({
 
                   {/* True/False */}
                   {current.type === 'true-false' && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-4">
                       {['True', 'False'].map((option, optionIdx) => {
                         const answered = answers[idx] !== null
                         const isSelected = answers[idx] === optionIdx
@@ -379,10 +410,10 @@ export default function QuizView({
                         const isWrongSelected = answered && isSelected && !isCorrect
 
                         const variant = isCorrect
-                          ? 'border-emerald-500/20 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
+                          ? 'border-l-2 border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
                           : isWrongSelected
-                            ? 'border-rose-500/20 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-805 dark:text-rose-300'
-                            : 'border-slate-900/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/40 text-slate-700 dark:text-slate-300'
+                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-455'
+                            : 'border-l-2 border-l-transparent text-slate-400 dark:text-slate-500 opacity-50'
 
                         return (
                           <button
@@ -390,11 +421,14 @@ export default function QuizView({
                             type="button"
                             disabled={true}
                             className={cx(
-                              'min-h-14 rounded-xl border px-4 py-3 text-sm font-semibold cursor-default',
+                              'w-full px-2 py-4 text-left text-sm font-semibold cursor-default bg-transparent flex items-center gap-3',
                               variant,
                             )}
                           >
-                            {option}
+                            <span className="font-mono text-xs opacity-60 select-none">
+                              {optionIdx === 0 ? '01' : '02'}/
+                            </span>
+                            <span className="font-normal text-slate-700 dark:text-slate-300">{option}</span>
                           </button>
                         )
                       })}
@@ -403,8 +437,8 @@ export default function QuizView({
 
                   {/* Fill in the Blank */}
                   {current.type === 'fill-blank' && (
-                    <div className="space-y-4">
-                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100">
+                    <div className="space-y-6">
+                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 font-normal">
                         {current.question.split('___').map((part, partIdx) => (
                           <span key={partIdx}>
                             {part}
@@ -415,10 +449,10 @@ export default function QuizView({
                                 disabled={true}
                                 placeholder="answer"
                                 className={cx(
-                                  'mx-2 inline-block w-32 rounded-lg border px-3 py-1 text-sm font-medium transition-colors bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100 cursor-default',
+                                  'mx-2 inline-block w-32 border-b bg-transparent px-2 py-0.5 text-sm font-mono cursor-default',
                                   answers[idx]?.isCorrect
-                                    ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
-                                    : 'border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-800 dark:text-rose-300'
+                                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                                    : 'border-rose-500 text-rose-600 dark:text-rose-400'
                                 )}
                               />
                             )}
@@ -426,20 +460,20 @@ export default function QuizView({
                         ))}
                       </div>
                       <p className={cx(
-                        'rounded-xl border px-4 py-3 text-sm font-semibold',
+                        'text-xs font-mono tracking-wider uppercase font-semibold',
                         answers[idx]?.isCorrect
-                          ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
-                          : 'border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-805 dark:text-rose-300'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
                       )}>
-                        {answers[idx]?.isCorrect ? 'Correct!' : `Correct answer: ${current.answers[0]}`}
+                        {answers[idx]?.isCorrect ? 'Correct' : `Correct Answer: ${current.answers[0]}`}
                       </p>
                     </div>
                   )}
 
                   {/* Cloze Deletion */}
                   {current.type === 'cloze' && (
-                    <div className="space-y-4">
-                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100">
+                    <div className="space-y-6">
+                      <div className="text-lg leading-relaxed text-slate-900 dark:text-slate-100 font-normal">
                         {current.question.split(/\{\d+\}/).map((part, partIdx) => (
                           <span key={partIdx}>
                             {part}
@@ -450,10 +484,10 @@ export default function QuizView({
                                 disabled={true}
                                 placeholder={current.answers[partIdx] || 'answer'}
                                 className={cx(
-                                  'mx-2 inline-block w-32 rounded-lg border px-3 py-1 text-sm font-medium transition-colors bg-white dark:bg-slate-850 text-slate-900 dark:text-slate-100 cursor-default',
+                                  'mx-2 inline-block w-32 border-b bg-transparent px-2 py-0.5 text-sm font-mono cursor-default',
                                   answers[idx]?.isCorrect
-                                    ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
-                                    : 'border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-800 dark:text-rose-300'
+                                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                                    : 'border-rose-500 text-rose-600 dark:text-rose-400'
                                 )}
                               />
                             )}
@@ -461,46 +495,46 @@ export default function QuizView({
                         ))}
                       </div>
                       <p className={cx(
-                        'rounded-xl border px-4 py-3 text-sm font-semibold',
+                        'text-xs font-mono tracking-wider uppercase font-semibold',
                         answers[idx]?.isCorrect
-                          ? 'border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-300'
-                          : 'border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/25 text-rose-805 dark:text-rose-300'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-rose-600 dark:text-rose-400'
                       )}>
-                        {answers[idx]?.isCorrect ? 'Correct!' : `Correct answers: ${current.answers.join(', ')}`}
+                        {answers[idx]?.isCorrect ? 'Correct' : `Correct Answers: ${current.answers.join(', ')}`}
                       </p>
                     </div>
                   )}
 
                   {/* Short Answer */}
                   {current.type === 'short-answer' && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <textarea
                         value={textAnswers[idx] || ''}
                         disabled={true}
                         rows={4}
-                        className="w-full rounded-xl border border-slate-900/5 dark:border-white/5 bg-slate-50/50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 px-4 py-3 text-sm font-medium cursor-default"
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-500 dark:text-slate-400 px-4 py-3 text-sm font-medium cursor-default"
                       />
                       
                       {showSuggestedAnswer[idx] && (
-                        <div className="rounded-xl border border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/20 p-4 animate-fade-up">
-                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1.5">Model Answer:</p>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{current.suggestedAnswer}</p>
+                        <div className="rounded-xl border border-indigo-500/10 dark:border-indigo-500/10 bg-indigo-50/10 dark:bg-indigo-950/10 p-6 animate-fade-up">
+                          <p className="text-[10px] font-mono tracking-widest text-indigo-600 dark:text-indigo-400 uppercase mb-2">Model Answer</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">{current.suggestedAnswer}</p>
                         </div>
                       )}
 
                       {showSuggestedAnswer[idx] && answers[idx]?.selfAssessed === undefined && (
-                        <div className="flex gap-3">
+                        <div className="flex gap-4 mt-4">
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(true)}
-                            className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition active:scale-[0.98] cursor-pointer"
+                            className="flex-1 text-[10px] font-mono tracking-widest text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-350 transition-colors uppercase py-2 border-b border-transparent hover:border-emerald-500/20 focus:outline-none cursor-pointer text-center font-bold"
                           >
                             I was correct
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(false)}
-                            className="flex-1 rounded-lg border border-slate-900/10 dark:border-white/10 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-850 active:scale-[0.98] transition-all cursor-pointer"
+                            className="flex-1 text-[10px] font-mono tracking-widest text-rose-600 hover:text-rose-550 dark:text-rose-455 dark:hover:text-rose-350 transition-colors uppercase py-2 border-b border-transparent hover:border-rose-500/20 focus:outline-none cursor-pointer text-center font-bold"
                           >
                             I still need to review
                           </button>
@@ -509,10 +543,10 @@ export default function QuizView({
 
                       {answers[idx]?.selfAssessed !== undefined && (
                         <p className={cx(
-                          'rounded-xl border px-4 py-3 text-sm font-semibold',
+                          'text-xs font-mono tracking-wider uppercase font-semibold',
                           answers[idx]?.selfAssessedCorrect
-                            ? 'border-emerald-505/20 bg-emerald-50/40 dark:bg-emerald-950/25 text-emerald-800 dark:text-emerald-350'
-                            : 'border-amber-505/20 bg-amber-50/40 dark:bg-amber-950/25 text-amber-800 dark:text-amber-350'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
                         )}>
                           {answers[idx]?.selfAssessedCorrect ? 'Self-assessed as correct' : 'Marked for review'}
                         </p>
@@ -521,44 +555,49 @@ export default function QuizView({
                   )}
                 </div>
 
-                {/* SM-2 Recall performance selectors */}
+                {/* Tactical SM-2 Performance Slider Capsule */}
                 {isAnswered() && (
-                  <div className="mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 animate-fade-up">
-                    <span className="block text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
-                      Rate your recall performance (SM-2):
+                  <div className="mt-12 border-t border-slate-900/5 dark:border-white/5 pt-8 animate-fade-up">
+                    <span className="block text-center text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-6 select-none font-semibold">
+                      Rate Recall Performance
                     </span>
-                    <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
+                    <div 
+                      className="relative flex items-center justify-between bg-slate-100/80 dark:bg-slate-950/60 p-1 rounded-full border border-slate-900/5 dark:border-white/10 max-w-lg mx-auto"
+                      onMouseLeave={() => setHoveredRating(null)}
+                    >
+                      {/* Sliding Highlight Pill */}
+                      <div 
+                        className="absolute top-1 bottom-1 left-1 rounded-full bg-white dark:bg-slate-900 shadow-[0_2px_10px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-slate-900/5 dark:border-white/10 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
+                        style={{
+                          width: 'calc(20% - 2px)',
+                          transform: hoveredRating !== null 
+                            ? `translateX(calc(${hoveredRating * 100}%))` 
+                            : 'scale(0.95)',
+                          opacity: hoveredRating !== null ? 1 : 0
+                        }}
+                      />
+
                       {[
-                        { val: 1, label: 'No Recall', classes: 'border-slate-900/5 dark:border-white/5 bg-slate-50/40 dark:bg-slate-900/20 text-slate-400 dark:text-slate-550 hover:bg-slate-100/50 dark:hover:bg-slate-900/40 hover:text-slate-600' },
-                        { val: 2, label: 'Vague', classes: 'border-slate-900/5 dark:border-white/5 bg-slate-100/50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 hover:bg-slate-200/40 dark:hover:bg-slate-900/60 hover:text-slate-700' },
-                        { val: 3, label: 'Hard', classes: 'border-slate-900/5 dark:border-white/10 bg-slate-200/30 dark:bg-slate-800/30 text-slate-600 dark:text-slate-350 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-800' },
-                        { val: 4, label: 'Good', classes: 'border-slate-900/5 dark:border-white/10 bg-slate-200/70 dark:bg-slate-800/65 text-slate-800 dark:text-slate-200 hover:bg-slate-300/50 dark:hover:bg-slate-700/50 hover:text-slate-950' },
-                        { val: 5, label: 'Perfect', classes: 'border-transparent bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-500/10 hover:scale-[1.04]' }
-                      ].map((rating) => (
+                        { val: 1, label: 'No Recall' },
+                        { val: 2, label: 'Vague' },
+                        { val: 3, label: 'Hard' },
+                        { val: 4, label: 'Good' },
+                        { val: 5, label: 'Perfect' }
+                      ].map((rating, rIdx) => (
                         <button
                           key={rating.val}
                           type="button"
                           onClick={() => handleSM2Rating(rating.val)}
-                          className={cx(
-                            "flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all duration-200 cursor-pointer group active:scale-[0.97]",
-                            rating.classes
-                          )}
+                          onMouseEnter={() => setHoveredRating(rIdx)}
+                          className="relative z-10 flex flex-1 flex-col items-center justify-center py-2.5 rounded-full text-center transition-colors duration-200 cursor-pointer group focus:outline-none"
                         >
-                          <span className="text-sm font-semibold transition flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200 flex items-center gap-1.5 select-none">
                             {rating.val}
-                            <kbd className={cx(
-                              "text-[9px] font-normal rounded px-1",
-                              rating.val === 5
-                                ? "bg-indigo-700 text-indigo-200 border border-indigo-550"
-                                : "bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 group-hover:border-slate-300"
-                            )}>
+                            <kbd className="text-[9px] font-normal rounded px-1.5 bg-slate-200 dark:bg-slate-800 border border-slate-250 dark:border-slate-700 text-slate-400 dark:text-slate-500 group-hover:border-indigo-200 dark:group-hover:border-indigo-900 transition-colors duration-200">
                               {rating.val}
                             </kbd>
                           </span>
-                          <span className={cx(
-                            "text-[9px] font-semibold transition mt-0.5 text-center truncate w-full",
-                            rating.val === 5 ? "text-indigo-105" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400"
-                          )}>
+                          <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-455 transition-colors duration-200 truncate w-full px-1 select-none font-medium">
                             {rating.label}
                           </span>
                         </button>
@@ -572,23 +611,28 @@ export default function QuizView({
         </div>
       </div>
 
-      {/* Navigation panel */}
-      <div className="w-full flex items-center justify-between gap-3 px-1 mt-2">
+      {/* Editorial Navigation Footer */}
+      <div className="w-full flex items-center justify-between px-1 mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-550 uppercase select-none font-medium">
         <button
           type="button"
           onClick={goPrevious}
           disabled={idx === 0}
-          className="rounded-lg border border-slate-900/10 dark:border-white/10 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-55 dark:hover:bg-slate-850 disabled:cursor-not-allowed disabled:opacity-45 inline-flex items-center gap-1.5 active:scale-[0.98] transition-all shadow-xs"
+          className="hover:text-slate-800 dark:hover:text-slate-205 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-colors flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
         >
-          Previous <kbd className="text-[10px] bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 text-slate-400 dark:text-slate-500">←</kbd>
+          ← Previous
         </button>
+        <div className="hidden sm:flex gap-4">
+          <span>Answered: {String(answeredCount).padStart(2, '0')}</span>
+          <span>Score: {String(score).padStart(2, '0')}</span>
+          {isReviewMode && <span>Mistakes: {String(incorrectQuestions.length).padStart(2, '0')}</span>}
+        </div>
         <button
           type="button"
           onClick={idx + 1 === total ? onQuizComplete : goNext}
           disabled={!isAnswered()}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-500/10 hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-45 inline-flex items-center gap-1.5 active:scale-[0.98] transition-all"
+          className="hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-colors flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
         >
-          {idx + 1 === total ? 'See Results' : 'Next'} <kbd className="text-[10px] bg-indigo-700/55 border border-indigo-500/30 rounded px-1 text-indigo-200">→</kbd>
+          {idx + 1 === total ? 'See Results' : 'Next'} →
         </button>
       </div>
 
