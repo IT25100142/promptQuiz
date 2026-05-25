@@ -9,7 +9,8 @@ import {
   getQuestionsByQuizId,
   getQuestionsCountByQuizId,
   deleteDeck,
-  createQuiz
+  createQuiz,
+  getRecentReviewTimestamps
 } from '../shared/services/indexedDB.js';
 
 export default function DecksPage() {
@@ -50,6 +51,45 @@ export default function DecksPage() {
       });
     }
   }, [library.savedDecks]);
+
+  const [matrixData, setMatrixData] = useState(() => 
+    Array.from({ length: 7 }, () => Array(24).fill(0))
+  );
+
+  useEffect(() => {
+    async function loadMatrix() {
+      try {
+        const timestamps = await getRecentReviewTimestamps(7);
+        const newMatrix = Array.from({ length: 7 }, () => Array(24).fill(0));
+        
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // start of today
+        
+        timestamps.forEach(ts => {
+          const date = new Date(ts);
+          const dayDiff = Math.floor((now - new Date(date.getFullYear(), date.getMonth(), date.getDate())) / (1000 * 60 * 60 * 24));
+          
+          if (dayDiff >= 0 && dayDiff < 7) {
+            // Row 6 = today, Row 0 = 6 days ago
+            const rowIndex = 6 - dayDiff; 
+            const hourIndex = date.getHours();
+            newMatrix[rowIndex][hourIndex] += 1;
+          }
+        });
+
+        // Cap intensities to 4 for styling classes
+        const finalMatrix = newMatrix.map(row => 
+          row.map(count => Math.min(4, count))
+        );
+        
+        setMatrixData(finalMatrix);
+      } catch (err) {
+        console.error('Failed to load matrix data', err);
+      }
+    }
+    
+    loadMatrix();
+  }, []);
 
   const handleStudyQuiz = async (quizId, deckId) => {
     setDeckLoading(true);
@@ -169,12 +209,6 @@ export default function DecksPage() {
   const heroDeck = hasDecks ? library.savedDecks[0] : null;
   const heroQuizzes = heroDeck ? (quizzesMap[heroDeck.id] || []) : [];
   const remainingDecks = hasDecks ? library.savedDecks.slice(1) : [];
-
-  const matrixData = useMemo(() => {
-    return Array.from({ length: 7 }, () => 
-      Array.from({ length: 24 }, () => Math.random() > 0.7 ? Math.floor(Math.random() * 4) + 1 : 0)
-    );
-  }, []);
 
   return (
     <div className="flex-1 flex flex-col">

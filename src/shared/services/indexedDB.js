@@ -790,6 +790,37 @@ async function deleteReviewSchedule(deckId) {
   }
 }
 
+// Get recent review timestamps for matrix visualization
+async function getRecentReviewTimestamps(days = 7) {
+  try {
+    const db = await initDB()
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['reviewSchedule'], 'readonly')
+      const store = transaction.objectStore('reviewSchedule')
+      const request = store.getAll()
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const results = request.result || []
+        const cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - days)
+        const cutoffIso = cutoff.toISOString()
+        
+        const timestamps = results
+          .filter(r => r.lastReviewedDate && r.lastReviewedDate >= cutoffIso)
+          .map(r => r.lastReviewedDate)
+          
+        resolve(timestamps)
+      }
+      
+      transaction.onerror = () => reject(transaction.error)
+    })
+  } catch (error) {
+    throw new Error(`Failed to get recent reviews: ${error.message}`)
+  }
+}
+
 async function exportLibrarySnapshot() {
   const decks = await getAllDecks()
   const snapshot = {
@@ -903,6 +934,7 @@ export {
   updateReviewSchedule,
   getDueReviews,
   deleteReviewSchedule,
+  getRecentReviewTimestamps,
 
   exportLibrarySnapshot,
   importLibrarySnapshot,
