@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useQuizLibrary, useQuizShell } from '../contexts/QuizContext.jsx';
+import AiPromptBuilderModal from '../features/ai/AiPromptBuilderModal.jsx';
 
 export default function Layout({ children }) {
   const library = useQuizLibrary();
@@ -41,6 +42,14 @@ export default function Layout({ children }) {
               {deckCount} {deckCount === 1 ? 'Deck' : 'Decks'} Stored
             </div>
             
+            <button
+              type="button"
+              onClick={() => shell.setShowAIPromptBuilder(true)}
+              className="inline-flex items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm transition-colors cursor-pointer"
+            >
+              AI Prompt Builder 🤖
+            </button>
+
             <Link
               to="/create-deck"
               className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-colors"
@@ -74,6 +83,8 @@ export default function Layout({ children }) {
           </div>
         </div>
       )}
+      {/* AI Prompt Builder Modal Helper */}
+      <AiPromptBuilderModal />
     </div>
   );
 }
