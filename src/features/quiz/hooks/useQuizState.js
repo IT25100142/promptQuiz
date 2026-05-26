@@ -90,6 +90,7 @@ export function useQuiz() {
 
   const review = useQuizReviewActions({
     dispatch,
+    isSpacedRepetition,
     incorrectQuestions,
     clearSessionTextState: sessionActions.clearSessionTextState,
   })

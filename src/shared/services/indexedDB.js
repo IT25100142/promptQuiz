@@ -1,5 +1,6 @@
 // IndexedDB utility functions for deck storage
 import { validateLibrarySnapshot, validateQuizQuestions } from '../schemas/quizQuestions.js'
+import { calculateNextReview } from './sm2.js'
 
 const DB_NAME = 'PromptQuizDB'
 const DB_VERSION = 2 // Increment version for schema upgrade
@@ -631,23 +632,6 @@ function clearLastUsedDeckId() {
   }
 }
 
-// SM-2 Algorithm for spaced repetition
-function calculateNextReviewDate(easeFactor, intervalDays, performanceQuality) {
-  // SM-2 formula: newInterval = interval * (easeFactor ^ (performanceQuality - 5))
-  // performanceQuality: 5=perfect, 4=correct, 3=difficult, 2=vague
-  const newEaseFactor = Math.max(1.3, easeFactor + (0.1 - (performanceQuality * 0.02)))
-  const newInterval = Math.max(1, Math.round(intervalDays * Math.pow(newEaseFactor, performanceQuality - 5)))
-  
-  const nextDate = new Date()
-  nextDate.setDate(nextDate.getDate() + newInterval)
-  
-  return {
-    nextReviewDate: nextDate.toISOString(),
-    interval: newInterval,
-    easeFactor: newEaseFactor
-  }
-}
-
 // Save review schedule for a question
 async function saveReviewSchedule(questionId, deckId, interval = 1, easeFactor = 2.5) {
   try {
@@ -704,11 +688,11 @@ async function updateReviewSchedule(questionId, performanceQuality) {
     const existing = await getReviewSchedule(questionId)
     if (!existing) return
 
-    const { nextReviewDate, interval, easeFactor } = calculateNextReviewDate(
-      existing.easeFactor,
-      existing.interval,
-      performanceQuality
-    )
+    const { nextReviewDate, interval, easeFactor } = calculateNextReview({
+      interval: existing.interval,
+      easeFactor: existing.easeFactor,
+      quality: performanceQuality,
+    })
 
     const db = await initDB()
     
@@ -818,6 +802,45 @@ async function getRecentReviewTimestamps(days = 7) {
     })
   } catch (error) {
     throw new Error(`Failed to get recent reviews: ${error.message}`)
+  }
+}
+
+async function getReviewStatsByDeckId(deckId, currentIsoDate = new Date().toISOString()) {
+  try {
+    const db = await initDB()
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['reviewSchedule'], 'readonly')
+      const store = transaction.objectStore('reviewSchedule')
+      const index = store.index('deckId')
+      const request = index.getAll(deckId)
+
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const reviews = request.result || []
+        const reviewed = reviews.filter((review) => review.lastReviewedDate)
+        const due = reviews.filter((review) => review.nextReviewDate <= currentIsoDate)
+        const easeSum = reviews.reduce(
+          (sum, review) => sum + (Number(review.easeFactor) || 0),
+          0,
+        )
+        const stableReviewed = reviewed.filter((review) => review.interval > 1)
+
+        resolve({
+          scheduledCount: reviews.length,
+          reviewedCount: reviewed.length,
+          dueCount: due.length,
+          avgEaseFactor: reviews.length ? easeSum / reviews.length : null,
+          retentionHealth: reviewed.length
+            ? stableReviewed.length / reviewed.length
+            : null,
+        })
+      }
+
+      transaction.onerror = () => reject(transaction.error)
+    })
+  } catch (error) {
+    throw new Error(`Failed to get review stats: ${error.message}`)
   }
 }
 
@@ -935,6 +958,7 @@ export {
   getDueReviews,
   deleteReviewSchedule,
   getRecentReviewTimestamps,
+  getReviewStatsByDeckId,
 
   exportLibrarySnapshot,
   importLibrarySnapshot,

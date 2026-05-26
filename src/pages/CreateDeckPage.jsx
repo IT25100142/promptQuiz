@@ -43,14 +43,14 @@ export default function CreateDeckPage() {
       }
 
       // 3. Write deck folder node to IndexedDB
-      const deckId = await library.addDeck(deckName.trim(), deckDescription.trim());
+      const deckId = await library.createNewDeck(deckName.trim(), deckDescription.trim());
 
       // 4. Create default quiz container inside deck
       const quizName = `${deckName.trim()} - Quiz 1`;
-      const quizId = await library.addQuiz(deckId, quizName, 'Auto-generated quiz from pasted text.');
+      const quizId = await library.createNewQuiz(deckId, quizName, 'Auto-generated quiz from pasted text.');
 
       // 5. Batch insert questions under quizId and deckId
-      await library.addQuestions(quizId, deckId, validation.value);
+      await library.addQuestionsToQuiz(quizId, deckId, validation.value);
 
       // 6. Notify success and redirect to dashboard
       shell.showToast(`Successfully created deck "${deckName}" with ${validation.value.length} questions!`, 'success');

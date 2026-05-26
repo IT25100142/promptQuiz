@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuizLibrary, useQuizSession, useQuizShell } from '../contexts/QuizContext.jsx';
 import {
@@ -10,7 +10,8 @@ import {
   getQuestionsCountByQuizId,
   deleteDeck,
   createQuiz,
-  getRecentReviewTimestamps
+  getRecentReviewTimestamps,
+  getReviewStatsByDeckId
 } from '../shared/services/indexedDB.js';
 
 export default function DecksPage() {
@@ -22,6 +23,7 @@ export default function DecksPage() {
 
   const [quizzesMap, setQuizzesMap] = useState({});
   const [questionsCountMap, setQuestionsCountMap] = useState({});
+  const [reviewStatsMap, setReviewStatsMap] = useState({});
   const [deckLoading, setDeckLoading] = useState(false);
 
   // States for adding a new quiz inline
@@ -33,6 +35,8 @@ export default function DecksPage() {
     try {
       const list = await getQuizzesByDeckId(deckId);
       setQuizzesMap(prev => ({ ...prev, [deckId]: list }));
+      const reviewStats = await getReviewStatsByDeckId(deckId);
+      setReviewStatsMap(prev => ({ ...prev, [deckId]: reviewStats }));
       
       // Fetch question count for each quiz in this deck
       for (const q of list) {
@@ -77,12 +81,7 @@ export default function DecksPage() {
           }
         });
 
-        // Cap intensities to 4 for styling classes
-        const finalMatrix = newMatrix.map(row => 
-          row.map(count => Math.min(4, count))
-        );
-        
-        setMatrixData(finalMatrix);
+        setMatrixData(newMatrix);
       } catch (err) {
         console.error('Failed to load matrix data', err);
       }
@@ -91,7 +90,7 @@ export default function DecksPage() {
     loadMatrix();
   }, []);
 
-  const handleStudyQuiz = async (quizId, deckId) => {
+  const handleStudyQuiz = async (quizId, _deckId) => {
     setDeckLoading(true);
     try {
       const questions = await getQuestionsByQuizId(quizId);
@@ -120,6 +119,18 @@ export default function DecksPage() {
     setDeckLoading(true);
     try {
       await deleteDeck(deckId);
+      const decks = await getAllDecks();
+      library.setSavedDecks(decks);
+      setQuizzesMap(prev => {
+        const next = { ...prev };
+        delete next[deckId];
+        return next;
+      });
+      setReviewStatsMap(prev => {
+        const next = { ...prev };
+        delete next[deckId];
+        return next;
+      });
       shell.showToast('Deck deleted successfully', 'success');
     } catch (err) {
       console.error(err);
@@ -208,7 +219,14 @@ export default function DecksPage() {
 
   const heroDeck = hasDecks ? library.savedDecks[0] : null;
   const heroQuizzes = heroDeck ? (quizzesMap[heroDeck.id] || []) : [];
+  const heroReviewStats = heroDeck ? reviewStatsMap[heroDeck.id] : null;
   const remainingDecks = hasDecks ? library.savedDecks.slice(1) : [];
+  const formatPercent = (value) => value === null || value === undefined
+    ? 'Not enough data'
+    : `${Math.round(value * 100)}%`;
+  const formatEase = (value) => value === null || value === undefined
+    ? 'Not enough data'
+    : value.toFixed(2);
 
   return (
     <div className="flex-1 flex flex-col">
@@ -241,14 +259,14 @@ export default function DecksPage() {
             onClick={handleImportLibraryPick}
             disabled={deckLoading}
             aria-label="Import library"
-            className="inline-flex items-center justify-center rounded-xl border border-amber-500/15 dark:border-amber-500/15 bg-amber-50/20 dark:bg-amber-955/10 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-amber-800 dark:text-amber-300 shadow-sm hover:bg-amber-100/20 dark:hover:bg-amber-900/10 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl border border-amber-500/15 dark:border-amber-500/15 bg-amber-50/20 dark:bg-amber-950/10 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-amber-800 dark:text-amber-300 shadow-sm hover:bg-amber-100/20 dark:hover:bg-amber-900/10 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
           >
             Import
           </button>
           <button
             type="button"
             onClick={() => navigate('/create-deck')}
-            className="inline-flex items-center justify-center rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-white dark:text-slate-955 shadow-md transition-all cursor-pointer active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-white dark:text-slate-950 shadow-md transition-all cursor-pointer active:scale-[0.98]"
           >
             New Deck
           </button>
@@ -284,7 +302,7 @@ export default function DecksPage() {
                     </button>
                   </div>
                   <h2 className="font-serif text-4xl sm:text-5xl tracking-tight text-slate-900 dark:text-white leading-tight mb-4">{heroDeck.name}</h2>
-                  <p className="text-slate-550 dark:text-slate-400 text-sm leading-relaxed mb-6 max-w-xl">{heroDeck.description || 'No description provided.'}</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-6 max-w-xl">{heroDeck.description || 'No description provided.'}</p>
                   
                   {/* Monospaced Metadata Analytics */}
                   <div className="flex flex-col gap-2 mb-8 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-900/5 dark:border-white/5">
@@ -294,22 +312,22 @@ export default function DecksPage() {
                     </div>
                     <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 dark:text-slate-400">
                       <span className="uppercase tracking-widest">Avg Ease Factor</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">2.45</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatEase(heroReviewStats?.avgEaseFactor)}</span>
                     </div>
                     <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 dark:text-slate-400">
                       <span className="uppercase tracking-widest">Retention Health</span>
-                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">94.2%</span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold">{formatPercent(heroReviewStats?.retentionHealth)}</span>
                     </div>
                     <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                      <span className="uppercase tracking-widest">DB Sync</span>
-                      <span className="text-slate-900 dark:text-slate-200 font-bold">ACTIVE_OK</span>
+                      <span className="uppercase tracking-widest">Due Reviews</span>
+                      <span className="text-slate-900 dark:text-slate-200 font-bold">{heroReviewStats?.dueCount ?? 0}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Quizzes List */}
                 <div className="border-t border-slate-900/5 dark:border-white/5 pt-6">
-                  <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Quizzes / Intervals</h3>
+                  <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Quizzes</h3>
                   {heroQuizzes.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2">
                       {heroQuizzes.map(quiz => {
@@ -321,18 +339,18 @@ export default function DecksPage() {
                             onClick={() => handleStudyQuiz(quiz.id, heroDeck.id)}
                             className="w-full flex items-center justify-between text-left px-4 py-3 rounded-lg border-l-2 border-l-transparent hover:border-l-indigo-500 bg-slate-50/30 dark:bg-slate-950/30 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all duration-200 group active:scale-[0.98]"
                           >
-                            <span className="text-[11px] font-mono tracking-wide text-slate-700 dark:text-slate-300 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors truncate pr-2">
+                            <span className="text-[11px] font-mono tracking-wide text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate pr-2">
                               {quiz.name}
                             </span>
                             <span className="shrink-0 text-slate-400 dark:text-slate-500 font-mono text-[9px] uppercase">
-                              [ {count} {count === 1 ? 'OBJ' : 'OBJS'} ]
+                              {count} {count === 1 ? 'card' : 'cards'}
                             </span>
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs italic text-slate-400 dark:text-slate-500 font-mono">No intervals in this deck.</p>
+                    <p className="text-xs italic text-slate-400 dark:text-slate-500 font-mono">No quizzes in this deck.</p>
                   )}
 
                   {/* Inline Quiz Creation for Hero */}
@@ -341,7 +359,7 @@ export default function DecksPage() {
                       <div className="flex flex-col gap-2">
                         <input
                           type="text"
-                          placeholder="TERMINAL_INPUT..."
+                          placeholder="Quiz name"
                           value={newQuizName}
                           onChange={(e) => setNewQuizName(e.target.value)}
                           className="w-full px-3 py-1.5 text-[10px] uppercase rounded-none border border-slate-200 dark:border-slate-800 bg-transparent focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-slate-100 font-mono"
@@ -355,14 +373,14 @@ export default function DecksPage() {
                             }}
                             className="px-4 py-2 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98] transition uppercase"
                           >
-                            Abort
+                            Cancel
                           </button>
                           <button
                             type="button"
                             onClick={() => handleCreateQuiz(heroDeck.id)}
                             className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold uppercase transition hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98]"
                           >
-                            Execute
+                            Create
                           </button>
                         </div>
                       </div>
@@ -372,7 +390,7 @@ export default function DecksPage() {
                         onClick={() => setActiveDeckForNewQuiz(heroDeck.id)}
                         className="w-full text-left text-[9px] font-mono font-bold text-indigo-600/70 dark:text-indigo-400/70 hover:text-indigo-600 py-1 uppercase tracking-widest transition-colors flex items-center gap-2"
                       >
-                        <span className="text-lg leading-none">+</span> APPEND_NEW_INTERVAL
+                        <span className="text-lg leading-none">+</span> Add quiz
                       </button>
                     )}
                   </div>
@@ -390,6 +408,7 @@ export default function DecksPage() {
                        <div key={colIndex} className="flex flex-col gap-1.5">
                          {matrixData.map((row, rowIndex) => {
                            const intensity = row[colIndex];
+                           const colorLevel = Math.min(4, intensity);
                            const colors = {
                              0: 'bg-slate-200/50 dark:bg-slate-800/50',
                              1: 'bg-indigo-300 dark:bg-indigo-900/60',
@@ -400,8 +419,8 @@ export default function DecksPage() {
                            return (
                              <div 
                                key={`${rowIndex}-${colIndex}`} 
-                               className={`w-3 h-3 rounded-[2px] ${colors[intensity] || colors[0]} transition-all duration-300 hover:scale-125 hover:ring-1 hover:ring-indigo-400 hover:z-10 relative`}
-                               title={`Reviews: ${intensity * 4}`}
+                               className={`w-3 h-3 rounded-[2px] ${colors[colorLevel] || colors[0]} transition-all duration-300 hover:scale-125 hover:ring-1 hover:ring-indigo-400 hover:z-10 relative`}
+                               title={`Reviews: ${intensity}`}
                              />
                            );
                          })}
@@ -428,8 +447,8 @@ export default function DecksPage() {
           {/* Technical Cluster: Flanking remaining decks list */}
           <div className="lg:col-span-1 space-y-2">
             <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-mono tracking-widest uppercase text-slate-450 dark:text-slate-500 font-semibold">Technical Cluster</span>
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-600">[{remainingDecks.length} RACKS]</span>
+              <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400 dark:text-slate-500 font-semibold">Other Decks</span>
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-600">{remainingDecks.length} saved</span>
             </div>
             
             {remainingDecks.length > 0 ? (
@@ -448,13 +467,13 @@ export default function DecksPage() {
                         <h4 className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{deck.name}</h4>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" title="System Active"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" title="Ready"></div>
                         <button
                           type="button"
                           onClick={() => handleDeleteDeck(deck.id)}
                           className="text-[9px] font-mono uppercase tracking-widest text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          Wipe
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -474,7 +493,7 @@ export default function DecksPage() {
                                 className="w-full flex items-center justify-between text-left py-2 px-2 rounded hover:pl-3 border-l-2 border-l-transparent hover:border-l-indigo-500 transition-all text-xs font-mono group/btn hover:bg-slate-50 dark:hover:bg-slate-900/50 active:scale-[0.98]"
                               >
                                 <span className="text-slate-600 dark:text-slate-400 group-hover/btn:text-indigo-600 dark:group-hover/btn:text-indigo-400 truncate">
-                                  &gt; {quiz.name}
+                                  {quiz.name}
                                 </span>
                                 <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">[{count}]</span>
                               </button>
@@ -491,7 +510,7 @@ export default function DecksPage() {
                           <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-900/5 dark:border-white/5">
                             <input
                               type="text"
-                              placeholder="INPUT..."
+                              placeholder="Quiz name"
                               value={newQuizName}
                               onChange={(e) => setNewQuizName(e.target.value)}
                               className="w-full px-2 py-1 text-[9px] bg-transparent border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500 uppercase"
@@ -505,14 +524,14 @@ export default function DecksPage() {
                                 }}
                                 className="px-3 py-1.5 rounded text-[10px] font-mono text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 uppercase active:scale-[0.98] transition"
                               >
-                                Abort
+                                Cancel
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleCreateQuiz(deck.id)}
                                 className="px-3 py-1.5 rounded bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-mono font-bold uppercase hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98] transition"
                               >
-                                Exec
+                                Create
                               </button>
                             </div>
                           </div>
@@ -522,7 +541,7 @@ export default function DecksPage() {
                             onClick={() => setActiveDeckForNewQuiz(deck.id)}
                             className="text-[9px] font-mono font-bold text-slate-400 hover:text-indigo-500 py-0.5 uppercase tracking-widest transition-colors"
                           >
-                            + APPEND
+                            + Add quiz
                           </button>
                         )}
                       </div>
@@ -532,7 +551,7 @@ export default function DecksPage() {
               })
             ) : (
               <div className="border border-slate-900/5 dark:border-white/5 p-4 rounded-xl border-dashed">
-                <p className="text-[10px] italic text-slate-400 dark:text-slate-550 font-mono text-center">NO_SECONDARY_RACKS</p>
+                <p className="text-[10px] italic text-slate-400 dark:text-slate-500 font-mono text-center">No other decks yet</p>
               </div>
             )}
           </div>
@@ -542,7 +561,7 @@ export default function DecksPage() {
         <div className="flex-1 flex flex-col items-center justify-center py-32 text-center max-w-3xl mx-auto mt-4">
           <span className="text-7xl mb-8 opacity-75">📚</span>
           <h2 className="font-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight text-slate-900 dark:text-slate-100 mt-2 mb-6 font-light">Your Library is Empty</h2>
-          <p className="text-slate-550 dark:text-slate-400 text-lg sm:text-xl leading-relaxed mb-10 max-w-2xl font-sans">
+          <p className="text-slate-500 dark:text-slate-400 text-lg sm:text-xl leading-relaxed mb-10 max-w-2xl font-sans">
             Create folder decks to organize active recall quizzes, or paste raw study notes to build tests instantly.
           </p>
           <button

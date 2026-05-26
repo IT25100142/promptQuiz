@@ -3,6 +3,7 @@ import { getDueReviews, getQuestionById } from '../../../shared/services/indexed
 
 export function useQuizReviewActions({
   dispatch,
+  isSpacedRepetition,
   incorrectQuestions,
   clearSessionTextState,
 }) {
@@ -12,12 +13,12 @@ export function useQuizReviewActions({
   )
 
   const toggleSpacedRepetition = useCallback(() => {
-    dispatch((prevState) => ({
-      ...prevState,
-      isSpacedRepetition: !prevState.isSpacedRepetition,
-      showReviewButtons: !prevState.showReviewButtons,
-    }))
-  }, [dispatch])
+    const next = !isSpacedRepetition
+    setState({
+      isSpacedRepetition: next,
+      showReviewButtons: next,
+    })
+  }, [isSpacedRepetition, setState])
 
   const startReviewMistakes = useCallback(() => {
     if (incorrectQuestions.length === 0) return

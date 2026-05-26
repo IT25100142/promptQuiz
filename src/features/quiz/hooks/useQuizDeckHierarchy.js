@@ -43,12 +43,12 @@ export function useQuizDeckHierarchy({ dispatch }) {
   )
 
   const createNewDeck = useCallback(
-    async (deckName) => {
+    async (deckName, description = '') => {
       if (!deckName.trim()) {
         throw new Error('Deck name cannot be empty')
       }
 
-      const deckId = await createDeck(deckName.trim())
+      const deckId = await createDeck(deckName.trim(), description)
       const updatedDecks = await getAllDecks()
       setState({ savedDecks: updatedDecks })
       return deckId
@@ -57,7 +57,7 @@ export function useQuizDeckHierarchy({ dispatch }) {
   )
 
   const createNewQuiz = useCallback(
-    async (deckId, quizName) => {
+    async (deckId, quizName, description = '') => {
       if (!deckId) {
         throw new Error('Please select a deck first')
       }
@@ -65,7 +65,7 @@ export function useQuizDeckHierarchy({ dispatch }) {
         throw new Error('Quiz name cannot be empty')
       }
 
-      const quizId = await createQuiz(deckId, quizName.trim())
+      const quizId = await createQuiz(deckId, quizName.trim(), description)
       await loadDeckQuizzes(deckId)
       return quizId
     },

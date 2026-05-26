@@ -42,4 +42,14 @@ describe('scoreSession', () => {
     expect(incorrect.length).toBe(1)
     expect(countCorrectInSession(mcqQuiz, answers, {})).toBe(1)
   })
+
+  it('scores true/false answers with index 0 as true and index 1 as false', () => {
+    const quiz = [
+      { type: 'true-false', question: 'T', answer: true },
+      { type: 'true-false', question: 'F', answer: false },
+    ]
+
+    expect(countCorrectInSession(quiz, [0, 1], {})).toBe(2)
+    expect(getIncorrectQuestions(quiz, [1, 0], {})).toHaveLength(2)
+  })
 })

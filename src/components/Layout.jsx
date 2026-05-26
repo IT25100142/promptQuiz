@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useQuizLibrary, useQuizShell } from '../contexts/QuizContext.jsx';
 import AiPromptBuilderModal from '../features/ai/AiPromptBuilderModal.jsx';
+import CommandHUD from './CommandHUD.jsx';
 
 export default function Layout({ children }) {
   const library = useQuizLibrary();
@@ -27,6 +28,19 @@ export default function Layout({ children }) {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const [isHudOpen, setIsHudOpen] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsHudOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
@@ -78,6 +92,17 @@ export default function Layout({ children }) {
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
               {deckCount} Stored
             </div>
+
+            {/* HUD Indicator */}
+            <button
+              type="button"
+              onClick={() => setIsHudOpen(true)}
+              className="hidden sm:flex items-center justify-center gap-1.5 rounded-full bg-slate-900/5 dark:bg-white/5 px-3 py-1.5 text-[10px] font-mono tracking-wider text-slate-500 dark:text-slate-400 border border-slate-900/5 dark:border-white/5 hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
+              title="Command HUD"
+            >
+              <span>HUD</span>
+              <kbd className="font-sans font-bold opacity-70">⌘K</kbd>
+            </button>
 
             {/* Theme Toggle Button */}
             <button
@@ -141,6 +166,9 @@ export default function Layout({ children }) {
       )}
       {/* AI Prompt Builder Modal Helper */}
       <AiPromptBuilderModal />
+
+      {/* Omni-Command HUD Modal */}
+      <CommandHUD isOpen={isHudOpen} onClose={() => setIsHudOpen(false)} toggleTheme={toggleTheme} />
     </div>
   );
 }

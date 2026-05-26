@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { cx } from '../shared/utils/helpers.js'
 import CardOverviewModal from './CardOverviewModal.jsx'
 import { calculateNextReview } from '../shared/services/sm2.js'
@@ -12,7 +12,7 @@ export default function QuizView({
   total,
   answeredCount,
   score,
-  progress,
+  progress: _progress,
   isReviewMode,
   incorrectQuestions,
   answers,
@@ -29,9 +29,9 @@ export default function QuizView({
   onQuizComplete,
   MarkdownRenderer,
   shuffleMode,
-  keepFirstQuestion,
+  keepFirstQuestion: _keepFirstQuestion,
   toggleShuffleMode,
-  toggleKeepFirstQuestion,
+  toggleKeepFirstQuestion: _toggleKeepFirstQuestion,
   showCardOverview,
   setShowCardOverview,
   jumpToQuestion,
@@ -40,7 +40,7 @@ export default function QuizView({
   const [hoveredRating, setHoveredRating] = useState(null);
   const [isZenMode, setIsZenMode] = useLocalStorage('promptquiz_zen_mode', false);
 
-  const handleSM2Rating = async (rating) => {
+  const handleSM2Rating = useCallback(async (rating) => {
     try {
       const db = await initDB();
       const schedule = await new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ export default function QuizView({
         goNext();
       }
     }
-  };
+  }, [current, goNext, idx, onQuizComplete, total]);
 
   // Keyboard shortcut definitions mapping home-row controls
   const shortcuts = useMemo(() => {
@@ -139,6 +139,7 @@ export default function QuizView({
     submitTextAnswer,
     toggleSuggestedAnswer,
     handleSM2Rating,
+    setIsZenMode,
   ]);
 
   useKeyPress(shortcuts);
@@ -164,7 +165,7 @@ export default function QuizView({
       {/* Editorial Mini Metadata & Control Bar */}
       <div className={cx("flex justify-between items-center w-full px-1 mb-8 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-555 uppercase select-none transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
         <span className="flex items-center gap-1.5">
-          Card <span className="text-slate-800 dark:text-slate-205 font-bold">{String(idx + 1).padStart(2, '0')}</span> / <span className="font-semibold">{String(total).padStart(2, '0')}</span>
+          Card <span className="text-slate-800 dark:text-slate-200 font-bold">{String(idx + 1).padStart(2, '0')}</span> / <span className="font-semibold">{String(total).padStart(2, '0')}</span>
         </span>
         <div className="flex items-center gap-6 font-medium">
           <button
@@ -278,7 +279,7 @@ export default function QuizView({
                                 value={textAnswers[idx] || ''}
                                 onChange={(e) => handleTextAnswer(e.target.value)}
                                 placeholder="answer"
-                                className="mx-2 inline-block w-32 border-b border-slate-350 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
+                                className="mx-2 inline-block w-32 border-b border-slate-300 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
                               />
                             )}
                           </span>
@@ -309,7 +310,7 @@ export default function QuizView({
                                 value={textAnswers[`${idx}-${partIdx}`] || ''}
                                 onChange={(e) => handleTextAnswer(e.target.value, partIdx)}
                                 placeholder={current.answers[partIdx] || 'answer'}
-                                className="mx-2 inline-block w-32 border-b border-slate-350 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
+                                className="mx-2 inline-block w-32 border-b border-slate-300 dark:border-slate-700 bg-transparent px-2 py-0.5 text-sm font-mono focus:outline-none focus:border-indigo-500 transition-colors text-slate-900 dark:text-slate-100"
                               />
                             )}
                           </span>
@@ -341,7 +342,7 @@ export default function QuizView({
                         onChange={(e) => handleTextAnswer(e.target.value)}
                         placeholder="Type your answer here..."
                         rows={4}
-                        className="w-full rounded-xl border border-slate-205 dark:border-slate-800 bg-transparent px-4 py-3 text-sm font-medium transition-all duration-305 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent px-4 py-3 text-sm font-medium transition-all duration-300 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-slate-100"
                       />
                       
                       <button
@@ -390,7 +391,7 @@ export default function QuizView({
                         const variant = isCorrect
                           ? 'border-l-2 border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
                           : isWrongSelected
-                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-455'
+                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-400'
                             : 'border-l-2 border-l-transparent text-slate-400 dark:text-slate-500 opacity-50'
 
                         return (
@@ -421,13 +422,13 @@ export default function QuizView({
                       {['True', 'False'].map((option, optionIdx) => {
                         const answered = answers[idx] !== null
                         const isSelected = answers[idx] === optionIdx
-                        const isCorrect = optionIdx === 1 ? current.answer : !current.answer
+                        const isCorrect = optionIdx === 0 ? current.answer : !current.answer
                         const isWrongSelected = answered && isSelected && !isCorrect
 
                         const variant = isCorrect
                           ? 'border-l-2 border-l-emerald-500 text-emerald-600 dark:text-emerald-400'
                           : isWrongSelected
-                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-455'
+                            ? 'border-l-2 border-l-rose-500 text-rose-600 dark:text-rose-400'
                             : 'border-l-2 border-l-transparent text-slate-400 dark:text-slate-500 opacity-50'
 
                         return (
@@ -542,14 +543,14 @@ export default function QuizView({
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(true)}
-                            className="flex-1 text-xs font-semibold tracking-widest text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-350 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-500/10 focus:outline-none cursor-pointer text-center"
+                            className="flex-1 text-xs font-semibold tracking-widest text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-500/10 focus:outline-none cursor-pointer text-center"
                           >
                             I was correct
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(false)}
-                            className="flex-1 text-xs font-semibold tracking-widest text-rose-600 hover:text-rose-550 dark:text-rose-455 dark:hover:text-rose-350 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-500/10 focus:outline-none cursor-pointer text-center"
+                            className="flex-1 text-xs font-semibold tracking-widest text-rose-600 hover:text-rose-500 dark:text-rose-400 dark:hover:text-rose-300 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-500/10 focus:outline-none cursor-pointer text-center"
                           >
                             I still need to review
                           </button>
@@ -608,11 +609,11 @@ export default function QuizView({
                         >
                           <span className="text-lg font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200 flex items-center gap-1.5 select-none">
                             {rating.val}
-                            <kbd className="hidden sm:inline-block text-[10px] font-normal rounded px-1.5 bg-slate-200 dark:bg-slate-800 border border-slate-250 dark:border-slate-700 text-slate-400 dark:text-slate-500 group-hover:border-indigo-200 dark:group-hover:border-indigo-900 transition-colors duration-200">
+                            <kbd className="hidden sm:inline-block text-[10px] font-normal rounded px-1.5 bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 group-hover:border-indigo-200 dark:group-hover:border-indigo-900 transition-colors duration-200">
                               {rating.val}
                             </kbd>
                           </span>
-                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-455 transition-colors duration-200 truncate w-full px-1 select-none">
+                          <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors duration-200 truncate w-full px-1 select-none">
                             {rating.label}
                           </span>
                         </button>
@@ -627,12 +628,12 @@ export default function QuizView({
       </div>
 
       {/* Editorial Navigation Footer */}
-      <div className={cx("w-full flex items-center justify-between px-1 mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-550 uppercase select-none font-medium transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
+      <div className={cx("w-full flex items-center justify-between px-1 mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase select-none font-medium transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
         <button
           type="button"
           onClick={goPrevious}
           disabled={idx === 0}
-          className="hover:text-slate-800 dark:hover:text-slate-205 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-all active:scale-[0.97] flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+          className="hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-all active:scale-[0.97] flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
         >
           ← Previous
         </button>

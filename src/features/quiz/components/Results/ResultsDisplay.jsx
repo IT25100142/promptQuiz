@@ -1,4 +1,5 @@
 import MarkdownRenderer from '../../../shared/ui/display/MarkdownRenderer.jsx'
+import { questionIsCorrect } from '../../utils/scoreSession.js'
 
 export default function ResultsDisplay({ quiz, answers, textAnswers }) {
   return (
@@ -6,6 +7,7 @@ export default function ResultsDisplay({ quiz, answers, textAnswers }) {
       {quiz.map((question, questionIdx) => {
         const answer = answers[questionIdx]
         const textAnswer = textAnswers[questionIdx]
+        const isCorrect = questionIsCorrect(question, questionIdx, answers, textAnswers)
         
         return (
           <div key={questionIdx} className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -59,11 +61,11 @@ export default function ResultsDisplay({ quiz, answers, textAnswers }) {
               
               <div className="flex shrink-0 items-center">
                 <div className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  answer?.isCorrect || answer?.selfAssessedCorrect
+                  isCorrect
                     ? 'bg-teal-100 text-teal-800'
                     : 'bg-rose-100 text-rose-800'
                 }`}>
-                  {answer?.isCorrect || answer?.selfAssessedCorrect ? 'Correct' : 'Incorrect'}
+                  {isCorrect ? 'Correct' : 'Incorrect'}
                 </div>
               </div>
             </div>

@@ -12,7 +12,7 @@ export function questionIsCorrect(question, questionIdx, answers, textAnswers) {
     case 'true-false':
       return (
         answer !== null &&
-        (answer === 1 ? question.answer : !question.answer) === true
+        (answer === 0 ? question.answer : !question.answer) === true
       )
     case 'fill-blank': {
       if (answer && typeof answer === 'object' && 'isCorrect' in answer) {

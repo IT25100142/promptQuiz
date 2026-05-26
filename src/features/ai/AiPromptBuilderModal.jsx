@@ -127,12 +127,12 @@ C. Computer Style Sheets
           shell.showToast('Please enter a new deck name.', 'error');
           return;
         }
-        deckId = await library.addDeck(newDeckName.trim(), 'Generated deck from AI Prompt Builder');
+        deckId = await library.createNewDeck(newDeckName.trim(), 'Generated deck from AI Prompt Builder');
       }
 
       const quizName = `${topic.trim() || 'AI Generated'} - Quiz`;
-      const quizId = await library.addQuiz(deckId, quizName, 'Imported from AI generated response');
-      await library.addQuestions(quizId, deckId, validationResult.questions);
+      const quizId = await library.createNewQuiz(deckId, quizName, 'Imported from AI generated response');
+      await library.addQuestionsToQuiz(quizId, deckId, validationResult.questions);
 
       shell.showToast(`Imported ${validationResult.questions.length} questions into deck!`, 'success');
       
