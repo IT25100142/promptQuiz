@@ -46,6 +46,18 @@ export default function Layout({ children }) {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (shell.toast) {
+      const timer = setTimeout(() => {
+        if (shell.setAppNotice) {
+          shell.setAppNotice(null);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [shell.toast, shell]);
+
   const isActive = (path) => location.pathname === path;
 
   return (

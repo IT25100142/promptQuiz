@@ -403,9 +403,9 @@ export default function DecksPage() {
                    <div className="absolute top-2 right-2 text-slate-900/20 dark:text-white/20 font-mono text-[8px] select-none">MATRIX_V1</div>
                    <h3 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-6">Review Velocity</h3>
                    
-                   <div className="flex gap-1.5 justify-end">
+                   <div className="flex gap-1 overflow-x-auto justify-start pb-1 scrollbar-hide">
                      {matrixData[0].map((_, colIndex) => (
-                       <div key={colIndex} className="flex flex-col gap-1.5">
+                       <div key={colIndex} className="flex flex-col gap-1">
                          {matrixData.map((row, rowIndex) => {
                            const intensity = row[colIndex];
                            const colorLevel = Math.min(4, intensity);
@@ -419,7 +419,7 @@ export default function DecksPage() {
                            return (
                              <div 
                                key={`${rowIndex}-${colIndex}`} 
-                               className={`w-3 h-3 rounded-[2px] ${colors[colorLevel] || colors[0]} transition-all duration-300 hover:scale-125 hover:ring-1 hover:ring-indigo-400 hover:z-10 relative`}
+                               className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-[2px] ${colors[colorLevel] || colors[0]} transition-all duration-300 hover:scale-125 hover:ring-1 hover:ring-indigo-400 hover:z-10 relative`}
                                title={`Reviews: ${intensity}`}
                              />
                            );
@@ -428,14 +428,14 @@ export default function DecksPage() {
                      ))}
                    </div>
                    
-                   <div className="mt-6 flex justify-between items-center text-[9px] font-mono text-slate-400">
+                   <div className="mt-4 flex justify-between items-center text-[9px] font-mono text-slate-500">
                      <span>Less</span>
-                     <div className="flex gap-1.5 items-center">
-                       <div className="w-2.5 h-2.5 rounded-[1px] bg-slate-200/50 dark:bg-slate-800/50"></div>
-                       <div className="w-2.5 h-2.5 rounded-[1px] bg-indigo-300 dark:bg-indigo-900/60"></div>
-                       <div className="w-2.5 h-2.5 rounded-[1px] bg-indigo-400 dark:bg-indigo-700"></div>
-                       <div className="w-2.5 h-2.5 rounded-[1px] bg-indigo-500 dark:bg-indigo-500"></div>
-                       <div className="w-2.5 h-2.5 rounded-[1px] bg-indigo-600 dark:bg-indigo-400"></div>
+                     <div className="flex gap-1 items-center">
+                       <div className="w-2 h-2 rounded-[1px] bg-slate-200/50 dark:bg-slate-800/50"></div>
+                       <div className="w-2 h-2 rounded-[1px] bg-indigo-300 dark:bg-indigo-900/60"></div>
+                       <div className="w-2 h-2 rounded-[1px] bg-indigo-400 dark:bg-indigo-700"></div>
+                       <div className="w-2 h-2 rounded-[1px] bg-indigo-500 dark:bg-indigo-500"></div>
+                       <div className="w-2 h-2 rounded-[1px] bg-indigo-600 dark:bg-indigo-400"></div>
                      </div>
                      <span>More</span>
                    </div>
@@ -445,10 +445,10 @@ export default function DecksPage() {
           </div>
 
           {/* Technical Cluster: Flanking remaining decks list */}
-          <div className="lg:col-span-1 space-y-2">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400 dark:text-slate-500 font-semibold">Other Decks</span>
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-600">{remainingDecks.length} saved</span>
+          <div className="lg:col-span-1 space-y-3">
+            <div className="flex justify-between items-center mb-4 border-b border-slate-900/10 dark:border-white/10 pb-2">
+              <span className="text-xs font-mono tracking-widest uppercase text-slate-500 dark:text-slate-400 font-bold">Other Decks</span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{remainingDecks.length} saved</span>
             </div>
             
             {remainingDecks.length > 0 ? (
@@ -550,8 +550,8 @@ export default function DecksPage() {
                 );
               })
             ) : (
-              <div className="border border-slate-900/5 dark:border-white/5 p-4 rounded-xl border-dashed">
-                <p className="text-[10px] italic text-slate-400 dark:text-slate-500 font-mono text-center">No other decks yet</p>
+              <div className="border border-slate-900/10 dark:border-white/10 p-6 rounded-xl border-dashed bg-slate-50/50 dark:bg-slate-900/30">
+                <p className="text-xs italic text-slate-500 dark:text-slate-400 font-mono text-center">No other decks yet</p>
               </div>
             )}
           </div>
