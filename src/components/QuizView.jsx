@@ -27,6 +27,7 @@ export default function QuizView({
   goPrevious,
   goNext,
   onQuizComplete,
+  onCloseStudy,
   MarkdownRenderer,
   shuffleMode,
   keepFirstQuestion: _keepFirstQuestion,
@@ -150,6 +151,21 @@ export default function QuizView({
 
   return (
     <main className="flex flex-1 flex-col py-8 w-full max-w-5xl mx-auto px-4 md:px-0 font-sans relative animate-fade-in">
+      <button
+        type="button"
+        onClick={onCloseStudy}
+        className={cx(
+          "absolute z-20 btn-ghost inline-flex items-center justify-center gap-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-all duration-200 active:scale-[0.97]",
+          isZenMode
+            ? "top-4 right-4 w-9 h-9 text-sm"
+            : "top-10 right-0 px-3 py-1.5 text-[10px] font-mono tracking-wider uppercase pill-badge"
+        )}
+        aria-label="Exit study session"
+        title="Exit to library"
+      >
+        {isZenMode ? '✕' : 'Exit'}
+      </button>
+
       {/* Live Monospace Session Log */}
       <div className={cx("absolute top-0 left-0 right-0 w-full flex items-center justify-between px-4 py-2.5 rounded-full glass-nav text-[8px] font-mono tracking-widest text-emerald-600/80 dark:text-emerald-400/80 uppercase transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", isZenMode && "opacity-0 pointer-events-none scale-95 blur-sm")}>
         <span className="flex items-center gap-2">

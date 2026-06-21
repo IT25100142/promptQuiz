@@ -14,6 +14,10 @@ export default function QuizPage() {
     navigate('/results');
   };
 
+  const handleCloseStudy = () => {
+    navigate('/decks');
+  };
+
   const handleEditQuiz = () => {
     navigate('/create-deck');
   };
@@ -67,6 +71,7 @@ export default function QuizPage() {
         jumpToQuestion={quizState.jumpToQuestion}
         quiz={quizState.quiz}
         onQuizComplete={handleQuizComplete}
+        onCloseStudy={handleCloseStudy}
         onEditQuiz={handleEditQuiz}
       />
     </div>
