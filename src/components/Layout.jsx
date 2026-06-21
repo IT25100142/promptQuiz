@@ -61,7 +61,12 @@ export default function Layout({ children }) {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-premium-mesh flex flex-col font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-900 dark:selection:text-indigo-100 transition-colors duration-200">
+    <div className="relative min-h-screen bg-premium-mesh flex flex-col font-sans text-slate-900 dark:text-slate-100 selection:bg-indigo-100 dark:selection:bg-indigo-900/60 selection:text-indigo-900 dark:selection:text-indigo-100 transition-colors duration-300 overflow-x-hidden">
+      {/* Ambient background orbs */}
+      <div className="ambient-orb w-[480px] h-[480px] -top-32 -left-32 bg-indigo-400/30 dark:bg-indigo-600/20" aria-hidden="true" />
+      <div className="ambient-orb w-[360px] h-[360px] top-1/3 -right-24 bg-violet-400/20 dark:bg-violet-600/15" aria-hidden="true" style={{ animationDelay: '-4s' }} />
+      <div className="ambient-orb w-[280px] h-[280px] bottom-0 left-1/4 bg-rose-300/15 dark:bg-rose-600/10" aria-hidden="true" style={{ animationDelay: '-8s' }} />
+
       {/* Top persistent navigation bar */}
       <div className="sticky top-4 z-40 w-full px-4 sm:px-6 lg:px-8">
         <header className="mx-auto max-w-7xl h-14 rounded-full border border-slate-900/5 dark:border-white/5 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-8 flex items-center justify-between shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
