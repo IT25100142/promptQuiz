@@ -131,22 +131,44 @@ function parseShortAnswerBlock(lines) {
 /**
  * Parses multiple choice questions from block lines.
  */
+const MCQ_TYPE_MARKER = /^\[(?:MCQ|Multiple Choice|MULTIPLE CHOICE)\]\s*(.*)$/i;
+
+function resolveMcqQuestion(lines) {
+  let question = lines[0].replace(/^\d+\.\s*/, '').trim();
+  let optionStartIdx = 1;
+
+  const markerMatch = question.match(MCQ_TYPE_MARKER);
+  if (markerMatch) {
+    const inlineQuestion = markerMatch[1]?.trim();
+    if (inlineQuestion) {
+      question = inlineQuestion;
+    } else if (lines.length > 1) {
+      question = lines[1].replace(/^\d+\.\s*/, '').trim();
+      optionStartIdx = 2;
+    }
+  }
+
+  return { question, optionStartIdx };
+}
+
 function parseMultipleChoiceBlock(lines) {
-  const question = lines[0].replace(/^\d+\.\s*/, '').trim();
+  const { question, optionStartIdx } = resolveMcqQuestion(lines);
   const options = [];
   let answerIndex = 0;
   let answer = '';
   let asteriskOptionIndex = -1;
   let asteriskAnswerValue = '';
 
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = optionStartIdx; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
     if (/^[A-E]\.\s*/i.test(line)) {
       // Option line (e.g. "A. option text")
       const optText = line.replace(/^[A-E]\.\s*/i, '').trim();
-      options.push(optText);
+      if (optText.toLowerCase() !== question.toLowerCase()) {
+        options.push(optText);
+      }
     } else if (line.startsWith('*')) {
       // Correct answer line (e.g. "*B" or "*Cascading Style Sheets")
       const ansVal = line.substring(1).trim();
@@ -157,9 +179,8 @@ function parseMultipleChoiceBlock(lines) {
         // Correct choice is designated by exact text matching
         asteriskAnswerValue = ansVal;
       }
-    } else if (options.length < 5) {
-      // Option line without prefix
-      // If it starts with *, it shouldn't hit here due to startsWith('*') check
+    } else if (options.length < 5 && line.toLowerCase() !== question.toLowerCase()) {
+      // Option line without prefix — skip duplicate of question stem
       options.push(line);
     }
   }
