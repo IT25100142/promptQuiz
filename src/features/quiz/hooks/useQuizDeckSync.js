@@ -21,28 +21,36 @@ export function useQuizDeckSync({
     [dispatch],
   )
 
+  const loadDecks = useCallback(async () => {
+    setState({ decksLoadStatus: 'loading', decksLoadError: null })
+    try {
+      const decks = await getAllDecks()
+      setState({ savedDecks: decks, decksLoadStatus: 'ready' })
+      return decks
+    } catch (e) {
+      console.error(e)
+      setState({
+        decksLoadError: e?.message || 'Failed to load decks',
+        decksLoadStatus: 'error',
+      })
+      throw e
+    }
+  }, [setState])
+
   useEffect(() => {
     let cancelled = false
 
-    const loadDecks = async () => {
-      setState({ decksLoadStatus: 'loading', decksLoadError: null })
+    const init = async () => {
       try {
-        const decks = await getAllDecks()
+        await loadDecks()
         if (cancelled) return
-        setState({ savedDecks: decks })
 
         const lastUsedId = await getLastUsedDeckId()
-        if (!lastUsedId) {
-          setState({ decksLoadStatus: 'ready' })
-          return
-        }
+        if (!lastUsedId) return
 
         const deck = await loadQuestionsForDeck(lastUsedId)
         if (cancelled) return
-        if (!deck || deck.questions.length === 0) {
-          setState({ decksLoadStatus: 'ready' })
-          return
-        }
+        if (!deck || deck.questions.length === 0) return
 
         setState({
           currentDeckId: lastUsedId,
@@ -50,7 +58,6 @@ export function useQuizDeckSync({
           answers: Array(deck.questions.length).fill(null),
           idx: 0,
           currentQuizId: deck.firstQuizId ?? null,
-          decksLoadStatus: 'ready',
         })
       } catch (e) {
         if (cancelled) return
@@ -62,11 +69,11 @@ export function useQuizDeckSync({
       }
     }
 
-    loadDecks()
+    init()
     return () => {
       cancelled = true
     }
-  }, [setState])
+  }, [loadDecks, setState])
 
   const saveCurrentDeck = useCallback(
     async (deckName) => {
@@ -129,5 +136,5 @@ export function useQuizDeckSync({
     [currentDeckId, selectedDeckForQuiz, clearSessionTextState, setState],
   )
 
-  return { saveCurrentDeck, loadDeck, deleteDeckById }
+  return { saveCurrentDeck, loadDeck, loadDecks, deleteDeckById }
 }
