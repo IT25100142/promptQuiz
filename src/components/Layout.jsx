@@ -112,10 +112,13 @@ export default function Layout({ children }) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Decks in memory indicator */}
-            <div className="flex items-center gap-2 rounded-full bg-slate-900/5 dark:bg-white/5 px-3 py-1.5 text-[10px] sm:text-xs font-mono tracking-wider uppercase text-slate-500 dark:text-slate-400 border border-slate-900/5 dark:border-white/5 font-semibold">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+            <div className="pill-badge flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] sm:text-xs font-mono tracking-wider uppercase text-slate-500 dark:text-slate-400 font-semibold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-glow-pulse absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+              </span>
               {deckCount} Stored
             </div>
 
@@ -123,43 +126,43 @@ export default function Layout({ children }) {
             <button
               type="button"
               onClick={() => setIsHudOpen(true)}
-              className="hidden sm:flex items-center justify-center gap-1.5 rounded-full bg-slate-900/5 dark:bg-white/5 px-3 py-1.5 text-[10px] font-mono tracking-wider text-slate-500 dark:text-slate-400 border border-slate-900/5 dark:border-white/5 hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors"
+              className="pill-badge hidden sm:flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-mono tracking-wider text-slate-500 dark:text-slate-400 cursor-pointer"
               title="Command HUD"
             >
               <span>HUD</span>
-              <kbd className="font-sans font-bold opacity-70">⌘K</kbd>
+              <kbd className="font-sans font-bold opacity-70 text-[9px] px-1.5 py-0.5 rounded bg-slate-900/5 dark:bg-white/10">⌘K</kbd>
             </button>
 
             {/* Theme Toggle Button */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-slate-900/5 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer active:scale-[0.95]"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full btn-ghost text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? (
-                <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-amber-400 transition-transform duration-300 hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M17.66 6.34l-1.41 1.41" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-4 h-4 text-indigo-500 transition-transform duration-300 hover:-rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
             </button>
-            
+
             <button
               type="button"
               onClick={() => shell.setShowAIPromptBuilder(true)}
-              className="inline-flex items-center justify-center rounded-full bg-slate-900/5 dark:bg-white/5 hover:bg-slate-900/10 dark:hover:bg-white/10 px-4 py-2 text-xs font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 font-semibold transition-all cursor-pointer active:scale-[0.97]"
+              className="btn-ghost inline-flex items-center justify-center rounded-full px-3 sm:px-4 py-2 text-xs font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 font-semibold cursor-pointer"
             >
               AI Builder
             </button>
 
             <Link
               to="/create-deck"
-              className="inline-flex items-center justify-center rounded-full bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2 text-xs font-mono tracking-wider uppercase font-bold text-white dark:text-slate-950 transition-all active:scale-[0.97]"
+              className="btn-primary inline-flex items-center justify-center rounded-full px-4 sm:px-5 py-2 text-xs font-mono tracking-wider shadow-glow-indigo"
             >
               New Deck
             </Link>
@@ -168,21 +171,21 @@ export default function Layout({ children }) {
       </div>
 
       {/* Main Container Slot */}
-      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-8 md:px-12 lg:px-16 py-8 flex flex-col">
+      <main className="relative flex-1 w-full max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 py-8 flex flex-col animate-fade-in">
         {children || <Outlet />}
       </main>
 
       {/* Global Toast Notification System */}
       {shell.toast && (
-        <div 
+        <div
           role="alert"
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-4 shadow-xl border animate-slide-in-up transition-all duration-300 max-w-sm ${
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl px-5 py-4 toast-glass border animate-slide-in-up transition-all duration-300 max-w-sm ${
             shell.toast.type === 'error'
-              ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-200'
-              : 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-200'
+              ? 'bg-rose-50/90 dark:bg-rose-950/75 border-rose-200/80 dark:border-rose-800/50 text-rose-800 dark:text-rose-200'
+              : 'bg-emerald-50/90 dark:bg-emerald-950/75 border-emerald-200/80 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-200'
           }`}
         >
-          <span className="text-lg">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 dark:bg-black/20 text-base shrink-0">
             {shell.toast.type === 'error' ? '⚠️' : '✅'}
           </span>
           <div className="flex-1 text-sm font-semibold leading-snug">
