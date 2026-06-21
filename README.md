@@ -158,10 +158,23 @@ Direct links to `/decks`, `/quiz`, and other routes work on GitHub Pages via:
 
 ---
 
+## Design & UI
+
+| Element | Implementation |
+| :--- | :--- |
+| **Typography** | DM Sans (UI) + Instrument Serif (headings) |
+| **Glassmorphism** | `premium-glass`, `glass-nav`, `toast-glass` utilities |
+| **Motion** | Card flip, fade-in, scale-in, glow-pulse indicators |
+| **Dark mode** | Class-based `.dark` toggle with full token parity |
+
+Key surfaces: floating glass navigation (`Layout.jsx`), 3D flip quiz cards (`QuizView.jsx`), Command HUD.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
+| :--- | :--- |
 | UI | React 19, React Router 7 |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Build | Vite 8 |
@@ -170,7 +183,7 @@ Direct links to `/decks`, `/quiz`, and other routes work on GitHub Pages via:
 | Testing | Vitest 4, Testing Library, fake-indexeddb |
 | Linting | ESLint 9 (flat config), jsx-a11y |
 
-**Not included:** Backend server, REST/GraphQL API, authentication, environment variables, or third-party LLM API calls.
+**Not included:** Backend server, REST/GraphQL API, authentication, or third-party LLM API calls.
 
 ---
 
@@ -194,25 +207,7 @@ flowchart TD
     QuizUI --> SM2[SM-2 Engine → reviewSchedule]
 ```
 
-### Three-slice context
-
-`QuizProvider` splits state to minimize re-renders:
-
-- **`useQuizSession`** — Active quiz, answers, navigation, shuffle, SM-2 ratings
-- **`useQuizLibrary`** — Deck CRUD, JSON input, IndexedDB sync
-- **`useQuizShell`** — Toasts, AI modal, parse messages
-
-Reducer and hooks live in `src/features/quiz/hooks/`. Persistence is centralized in `src/shared/services/indexedDB.js`.
-
-### IndexedDB schema (v2)
-
-```
-decks → quizzes → questions
-                    ↓
-              reviewSchedule (SM-2 metadata per question)
-```
-
-For full schema fields, API surface, and contributor guidelines, see [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
+For full schema, hooks, and contributor guidelines, see [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
 
 ---
 
@@ -221,8 +216,6 @@ For full schema fields, API surface, and contributor guidelines, see [`PROJECT_C
 **Types:** `multiple-choice`, `true-false`, `fill-blank`, `cloze`, `short-answer`
 
 **Import formats:** JSON array, AI block text (recommended), Markdown headers, CSV-style lists.
-
-Example AI block:
 
 ```text
 [T/F] React 19 works with Vite 8.
@@ -237,14 +230,14 @@ B. Cascading Style Sheets
 *Cascading Style Sheets
 ```
 
-JSON and full schema definitions: `src/shared/schemas/quizQuestions.js`
+Schema definitions: [`src/shared/schemas/quizQuestions.js`](src/shared/schemas/quizQuestions.js)
 
 ---
 
 ## NPM Scripts
 
 | Command | Description |
-|---------|-------------|
+| :--- | :--- |
 | `npm run dev` | Dev server with HMR (port **5173**) |
 | `npm run build` | Production build → `/dist` |
 | `npm run preview` | Preview production build |
@@ -261,7 +254,7 @@ npm test
 npm run lint
 ```
 
-Tests use **Vitest + jsdom + fake-indexeddb**. Ten test files cover schemas, parsers, IndexedDB, scoring, context, and page flows.
+Ten test files cover schemas, parsers, IndexedDB, scoring, context, and page flows.
 
 > IndexedDB warnings in some route tests are expected in Node/jsdom and do not fail the suite.
 
@@ -271,19 +264,18 @@ Tests use **Vitest + jsdom + fake-indexeddb**. Ten test files cover schemas, par
 
 ```text
 promptQuiz/
+├── .github/workflows/deploy.yml
 ├── README.md
-├── PROJECT_CONTEXT.md      # Deep technical reference for contributors & AI agents
+├── PROJECT_CONTEXT.md
+├── public/404.html           # GitHub Pages SPA fallback
 ├── src/
-│   ├── App.jsx             # Routes
-│   ├── index.css           # Tailwind v4 design system & utilities
-│   ├── components/         # Layout, QuizView, CommandHUD, modals
+│   ├── App.jsx
+│   ├── index.css
+│   ├── components/         # Layout, QuizView, CommandHUD
 │   ├── contexts/           # QuizContext (three-slice provider)
-│   ├── pages/              # Route pages
-│   ├── features/           # ai, decks, quiz, ui, questions modules
-│   └── shared/
-│       ├── schemas/        # Zod validation
-│       ├── services/       # indexedDB.js, sm2.js
-│       └── utils/          # parsers, helpers
+│   ├── pages/
+│   ├── features/           # ai, quiz, ui modules
+│   └── shared/             # schemas, services, utils
 └── vitest.config.js
 ```
 
@@ -292,11 +284,11 @@ promptQuiz/
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+| :--- | :--- |
 | Blank `/quiz` page | Start a quiz from `/decks` first |
-| Parse errors | Ensure JSON is an array; text blocks separated by one blank line |
+| Parse errors | JSON must be an array; text blocks need one blank line between questions |
 | Data lost on browser clear | Export library JSON regularly from `/decks` |
-| 404 on production refresh | Configure SPA fallback to `/index.html` on your host |
+| 404 on refresh (GitHub Pages) | Ensure Pages source is **GitHub Actions** and workflow succeeded |
 | Missing styles | Confirm `@tailwindcss/vite` is in `vite.config.js` |
 
 ---
@@ -305,14 +297,24 @@ promptQuiz/
 
 1. Run `npm run lint` and `npm test` before submitting changes.
 2. Co-locate tests as `*.test.js` / `*.test.jsx` beside source files.
-3. New question types require updates to Zod schemas **and** both parsers (`parsers.js`, `helpers.js`).
-4. Read [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) before modifying state, IndexedDB, or import logic.
+3. New question types require Zod schema updates and parser changes in `parsers.js`.
+4. Read [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) before modifying state or IndexedDB.
+
+Contributions, issues, and feature requests are welcome.
 
 ---
 
 ## Author
 
-**Sankalpa KMCP** — First-year IT undergraduate at SLIIT, building practical, privacy-first tools at the intersection of web development and AI-assisted learning.
+**Sankalpa KMCP**
+
+First-year IT undergraduate at **SLIIT**, building practical, privacy-first tools at the intersection of web development and AI-assisted learning.
+
+[![GitHub](https://img.shields.io/badge/GitHub-IT25100142-181717?logo=github)](https://github.com/IT25100142)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Sankalpa_KMCP-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba/)
+
+- GitHub: [github.com/IT25100142](https://github.com/IT25100142)
+- LinkedIn: [linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba](https://www.linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba/)
 
 ---
 
