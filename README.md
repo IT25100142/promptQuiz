@@ -1,5 +1,7 @@
 # PromptQuiz
 
+**Live Demo:** [https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/](https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/) *(replace `YOUR_GITHUB_USERNAME` after enabling GitHub Pages)*
+
 **A privacy-first, offline study app for active recall and spaced repetition — built entirely in the browser.**
 
 PromptQuiz is a single-page React application that lets you create quiz decks from JSON or plain text, practice with rich question types, schedule reviews with the SM-2 algorithm, and sync content with external LLMs through a copy-paste AI Prompt Builder. No accounts, no backend, no API keys — your decks live in **IndexedDB** on your device.
@@ -82,8 +84,37 @@ npm install --legacy-peer-deps
 
 ```bash
 npm run build
-npm run preview   # serve /dist at http://localhost:4173
+npm run preview   # serve /dist at http://localhost:4173/promptQuiz/
 ```
+
+---
+
+## Deployment
+
+PromptQuiz is configured for **GitHub Pages** at `https://<username>.github.io/promptQuiz/`.
+
+### Automatic deploys
+
+Pushes to the **`main`** branch trigger [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), which:
+
+1. Installs dependencies with `npm ci`
+2. Runs `npm run build`
+3. Deploys the `dist` folder to GitHub Pages via `actions/deploy-pages@v4`
+
+### One-time GitHub setup
+
+1. Push this repository to GitHub (repository name: **`promptQuiz`**).
+2. Go to **Settings → Pages → Build and deployment**.
+3. Set **Source** to **GitHub Actions** (not “Deploy from a branch”).
+4. After the first successful workflow run, update the Live Demo link at the top of this README with your GitHub username.
+
+### SPA routing on GitHub Pages
+
+- `vite.config.js` sets `base: '/promptQuiz/'`.
+- `BrowserRouter` uses `import.meta.env.BASE_URL` as `basename`.
+- `public/404.html` plus the restore script in `index.html` handle direct links to routes like `/decks` and `/quiz`.
+
+If you rename the repository, update the `base` path in `vite.config.js` and `pathSegmentsToKeep` in `public/404.html` to match.
 
 ---
 
