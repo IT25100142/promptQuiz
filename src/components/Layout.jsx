@@ -19,6 +19,8 @@ export default function Layout({ children }) {
     return 'light';
   });
 
+  const [headerHovered, setHeaderHovered] = useState(false);
+
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -69,36 +71,43 @@ export default function Layout({ children }) {
 
       {/* Top persistent navigation bar */}
       <div className="sticky top-4 z-40 w-full px-4 sm:px-6 lg:px-8">
-        <header className="mx-auto max-w-7xl h-14 rounded-full border border-slate-900/5 dark:border-white/5 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md px-8 flex items-center justify-between shadow-[0_8px_30px_rgba(0,0,0,0.02)]">
+        <header
+          className={`mx-auto max-w-7xl h-14 rounded-full glass-nav px-6 sm:px-8 flex items-center justify-between transition-all duration-300 ${headerHovered ? 'glass-nav-hover' : ''}`}
+          onMouseEnter={() => setHeaderHovered(true)}
+          onMouseLeave={() => setHeaderHovered(false)}
+        >
           <div className="flex items-center gap-6">
-            <Link 
-              to="/decks" 
-              className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase font-mono text-slate-900 dark:text-white hover:opacity-80 transition"
+            <Link
+              to="/decks"
+              className="group flex items-center gap-2.5 text-sm font-bold tracking-widest uppercase font-mono text-slate-900 dark:text-white transition-all duration-200 hover:opacity-90"
             >
-              <span>PromptQuiz</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-[10px] font-black shadow-glow-indigo transition-transform duration-200 group-hover:scale-105">
+                PQ
+              </span>
+              <span className="hidden sm:inline bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                PromptQuiz
+              </span>
             </Link>
-            <nav className="hidden md:flex items-center gap-4">
-              <Link 
-                to="/decks" 
-                className={`relative py-1 text-xs font-mono tracking-wider uppercase transition-all duration-200 hover:text-slate-900 dark:hover:text-white ${
-                  isActive('/decks') ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-500 dark:text-slate-400 font-semibold'
+            <nav className="hidden md:flex items-center gap-1">
+              <Link
+                to="/decks"
+                className={`relative px-3 py-1.5 rounded-full text-xs font-mono tracking-wider uppercase transition-all duration-200 ${
+                  isActive('/decks')
+                    ? 'text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-500/10 dark:bg-indigo-500/15'
+                    : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5'
                 }`}
               >
                 My Library
-                {isActive('/decks') && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                )}
               </Link>
-              <Link 
-                to="/create-deck" 
-                className={`relative py-1 text-xs font-mono tracking-wider uppercase transition-all duration-200 hover:text-slate-900 dark:hover:text-white ${
-                  isActive('/create-deck') ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-500 dark:text-slate-400 font-semibold'
+              <Link
+                to="/create-deck"
+                className={`relative px-3 py-1.5 rounded-full text-xs font-mono tracking-wider uppercase transition-all duration-200 ${
+                  isActive('/create-deck')
+                    ? 'text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-500/10 dark:bg-indigo-500/15'
+                    : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5'
                 }`}
               >
                 Create Deck
-                {isActive('/create-deck') && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                )}
               </Link>
             </nav>
           </div>
