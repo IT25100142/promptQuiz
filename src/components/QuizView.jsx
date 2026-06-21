@@ -206,15 +206,15 @@ export default function QuizView({
       </div>
 
       {/* 3D Perspective Card Flip Container */}
-      <div key={current.id} className="w-full [perspective:1000px] mb-8 animate-fade-up">
+      <div key={current.id} className="w-full [perspective:1200px] mb-8 animate-scale-in">
         <div
-          className="relative w-full transition-transform duration-700 [transform-style:preserve-3d]"
+          className="relative w-full transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform-style:preserve-3d]"
           style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)', transformStyle: 'preserve-3d' }}
         >
           {/* Front Side */}
           <div
             className={cx(
-              "w-full rounded-3xl premium-glass p-12 sm:p-16 transition-all duration-300 overflow-hidden",
+              "w-full rounded-3xl premium-glass bg-technical-grid shadow-premium p-10 sm:p-14 lg:p-16 transition-all duration-300 overflow-hidden",
               isFlipped ? "pointer-events-none absolute inset-0 opacity-0" : "relative opacity-100"
             )}
             style={{ backfaceVisibility: 'hidden' }}
@@ -226,20 +226,20 @@ export default function QuizView({
             <div className={cx("absolute bottom-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none transition-all duration-500", isZenMode && "opacity-0 scale-95")}>+</div>
             {!isFlipped && (
               <>
-                <h2 className="font-serif text-3xl sm:text-4xl leading-relaxed tracking-wide text-slate-900 dark:text-slate-100">
+                <h2 className="font-serif text-3xl sm:text-4xl lg:text-[2.75rem] leading-snug sm:leading-relaxed tracking-wide text-slate-900 dark:text-slate-50 text-balance">
                   <MarkdownRenderer text={current.question} />
                 </h2>
 
-                <div className="mt-12">
+                <div className="mt-10 sm:mt-12">
                   {/* Multiple Choice */}
                   {current.type === 'multiple-choice' && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {current.options.map((option, optionIdx) => (
                         <button
                           key={option}
                           type="button"
                           onClick={() => choose(optionIdx)}
-                          className="w-full border-l-2 border-l-transparent px-6 py-4 rounded-xl text-left text-base font-semibold transition-all duration-150 active:scale-[0.98] hover:bg-slate-900/5 focus:bg-slate-900/5 dark:hover:bg-white/5 dark:focus:bg-white/5 hover:border-l-indigo-600 focus:border-l-indigo-600 bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none flex items-start gap-3 group relative"
+                          className="quiz-option w-full px-5 sm:px-6 py-4 rounded-2xl text-left text-base font-semibold bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 flex items-start gap-3 group relative subpixel-border"
                         >
                           <span className="font-mono text-sm text-slate-400 dark:text-slate-500 select-none mt-0.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center">
                             <span className="opacity-0 group-hover:opacity-100 -ml-3 group-hover:ml-0 transition-all duration-150 mr-1 overflow-hidden w-0 group-hover:w-auto inline-block">→</span >
@@ -255,13 +255,13 @@ export default function QuizView({
 
                   {/* True/False */}
                   {current.type === 'true-false' && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {['True', 'False'].map((option, optionIdx) => (
                         <button
                           key={option}
                           type="button"
                           onClick={() => choose(optionIdx)}
-                          className="w-full border-l-2 border-l-transparent px-6 py-4 rounded-xl text-left text-base font-semibold transition-all duration-150 active:scale-[0.98] hover:bg-slate-900/5 focus:bg-slate-900/5 dark:hover:bg-white/5 dark:focus:bg-white/5 hover:border-l-indigo-600 focus:border-l-indigo-600 bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none flex items-center gap-3 group relative"
+                          className="quiz-option w-full px-5 sm:px-6 py-4 rounded-2xl text-left text-base font-semibold bg-transparent text-slate-900 dark:text-slate-100 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 flex items-center gap-3 group relative subpixel-border"
                         >
                           <span className="font-mono text-sm text-slate-400 dark:text-slate-500 select-none group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center">
                             <span className="opacity-0 group-hover:opacity-100 -ml-3 group-hover:ml-0 transition-all duration-150 mr-1 overflow-hidden w-0 group-hover:w-auto inline-block">→</span >
@@ -369,7 +369,7 @@ export default function QuizView({
           {/* Back Side */}
           <div
             className={cx(
-              "w-full rounded-3xl premium-glass p-12 sm:p-16 transition-all duration-300 overflow-hidden",
+              "w-full rounded-3xl premium-glass bg-technical-grid shadow-premium p-10 sm:p-14 lg:p-16 transition-all duration-300 overflow-hidden",
               isFlipped ? "relative opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
             )}
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
@@ -381,14 +381,14 @@ export default function QuizView({
             <div className={cx("absolute bottom-4 right-4 text-slate-900/20 dark:text-white/20 font-mono text-[10px] select-none leading-none pointer-events-none transition-all duration-500", isZenMode && "opacity-0 scale-95")}>+</div>
             {isFlipped && (
               <>
-                <h2 className="font-serif text-3xl sm:text-4xl leading-relaxed tracking-wide text-slate-900 dark:text-slate-100">
+                <h2 className="font-serif text-3xl sm:text-4xl lg:text-[2.75rem] leading-snug sm:leading-relaxed tracking-wide text-slate-900 dark:text-slate-50 text-balance">
                   <MarkdownRenderer text={current.question} />
                 </h2>
 
-                <div className="mt-12">
+                <div className="mt-10 sm:mt-12">
                   {/* Multiple Choice */}
                   {current.type === 'multiple-choice' && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {current.options.map((option, optionIdx) => {
                         const answered = answers[idx] !== null
                         const isSelected = answers[idx] === optionIdx
@@ -407,7 +407,7 @@ export default function QuizView({
                             type="button"
                             disabled={true}
                             className={cx(
-                              'w-full px-6 py-4 rounded-xl text-left text-base font-semibold cursor-default bg-transparent flex items-start gap-3',
+                              'w-full px-5 sm:px-6 py-4 rounded-2xl text-left text-base font-semibold cursor-default bg-transparent flex items-start gap-3 subpixel-border transition-colors duration-200',
                               variant,
                             )}
                           >
@@ -425,7 +425,7 @@ export default function QuizView({
 
                   {/* True/False */}
                   {current.type === 'true-false' && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                       {['True', 'False'].map((option, optionIdx) => {
                         const answered = answers[idx] !== null
                         const isSelected = answers[idx] === optionIdx
@@ -444,7 +444,7 @@ export default function QuizView({
                             type="button"
                             disabled={true}
                             className={cx(
-                              'w-full px-6 py-4 rounded-xl text-left text-base font-semibold cursor-default bg-transparent flex items-center gap-3',
+                              'w-full px-5 sm:px-6 py-4 rounded-2xl text-left text-base font-semibold cursor-default bg-transparent flex items-center gap-3 subpixel-border transition-colors duration-200',
                               variant,
                             )}
                           >
