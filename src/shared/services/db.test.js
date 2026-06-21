@@ -8,6 +8,10 @@ import {
   addQuestions,
   getQuestionsByQuizId,
   getDueReviews,
+  saveReviewSchedule,
+  getReviewSchedule,
+  deleteQuiz,
+  deleteDeck,
   closeDB
 } from './indexedDB.js';
 
@@ -101,5 +105,45 @@ describe('IndexedDB CRUD Services (indexedDB.js)', () => {
     const dueList = await getDueReviews('2026-05-25T00:00:00Z');
     expect(dueList.length).toBe(1);
     expect(dueList[0].questionId).toBe(1);
+  });
+
+  it('should delete review schedules when a quiz is deleted', async () => {
+    const deckId = await createDeck('Biology', 'Life sciences');
+    const quizId = await createQuiz(deckId, 'Cell Biology', 'Cells');
+
+    const questionIds = await addQuestions(quizId, deckId, [
+      { type: 'true-false', question: 'Mitochondria is the powerhouse of the cell.', answer: true },
+      { type: 'true-false', question: 'Plant cells have cell walls.', answer: true },
+    ]);
+
+    await saveReviewSchedule(questionIds[0], deckId);
+    await saveReviewSchedule(questionIds[1], deckId);
+
+    expect(await getReviewSchedule(questionIds[0])).not.toBeNull();
+    expect(await getReviewSchedule(questionIds[1])).not.toBeNull();
+
+    await deleteQuiz(quizId);
+
+    expect(await getQuestionsByQuizId(quizId)).toHaveLength(0);
+    expect(await getReviewSchedule(questionIds[0])).toBeNull();
+    expect(await getReviewSchedule(questionIds[1])).toBeNull();
+  });
+
+  it('should cascade review schedule deletion when a deck is deleted', async () => {
+    const deckId = await createDeck('History', 'World history');
+    const quizId = await createQuiz(deckId, 'Ancient Rome', 'Roman empire');
+
+    const questionIds = await addQuestions(quizId, deckId, [
+      { type: 'true-false', question: 'Julius Caesar was a Roman dictator.', answer: true },
+    ]);
+
+    await saveReviewSchedule(questionIds[0], deckId);
+    expect(await getReviewSchedule(questionIds[0])).not.toBeNull();
+
+    await deleteDeck(deckId);
+
+    expect(await getAllDecks()).toHaveLength(0);
+    expect(await getQuizzesByDeckId(deckId)).toHaveLength(0);
+    expect(await getReviewSchedule(questionIds[0])).toBeNull();
   });
 });

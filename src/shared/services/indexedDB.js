@@ -147,19 +147,13 @@ async function updateDeck(deckId, updates) {
 async function deleteDeck(deckId) {
   try {
     const db = await initDB()
-    
-    // Get all quizzes in this deck
+
     const quizzes = await getQuizzesByDeckId(deckId)
-    
-    // Delete all questions from all quizzes in this deck
+
     for (const quiz of quizzes) {
-      await deleteQuestionsByQuizId(quiz.id)
+      await deleteQuiz(quiz.id)
     }
-    
-    // Delete all quizzes in this deck
-    await deleteQuizzesByDeckId(deckId)
-    
-    // Delete the deck
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['decks'], 'readwrite')
       const store = transaction.objectStore('decks')
@@ -268,44 +262,6 @@ async function deleteQuiz(quizId) {
     })
   } catch (error) {
     throw new Error(`Failed to delete quiz: ${error.message}`)
-  }
-}
-
-// Delete all quizzes in a deck
-async function deleteQuizzesByDeckId(deckId) {
-  try {
-    const db = await initDB()
-    
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['quizzes'], 'readwrite')
-      const store = transaction.objectStore('quizzes')
-      const index = store.index('deckId')
-      const request = index.getAll(deckId)
-
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        const quizzes = request.result || []
-        let completed = 0
-        
-        if (quizzes.length === 0) {
-          resolve(0)
-          return
-        }
-        
-        quizzes.forEach(quiz => {
-          const deleteRequest = store.delete(quiz.id)
-          deleteRequest.onsuccess = () => {
-            completed++
-            if (completed === quizzes.length) {
-              resolve(completed)
-            }
-          }
-        })
-      }
-      transaction.onerror = () => reject(transaction.error)
-    })
-  } catch (error) {
-    throw new Error(`Failed to delete quizzes: ${error.message}`)
   }
 }
 
@@ -445,34 +401,33 @@ async function deleteQuestion(questionId) {
 // Delete all questions in a quiz
 async function deleteQuestionsByQuizId(quizId) {
   try {
+    const questions = await getQuestionsByQuizId(quizId)
+    if (questions.length === 0) {
+      return 0
+    }
+
+    const questionIds = questions.map((question) => question.id)
+    await deleteReviewSchedulesByQuestionIds(questionIds)
+
     const db = await initDB()
-    
+
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(['questions'], 'readwrite')
       const store = transaction.objectStore('questions')
-      const index = store.index('quizId')
-      const request = index.getAll(quizId)
 
-      request.onerror = () => reject(request.error)
-      request.onsuccess = () => {
-        const questions = request.result || []
-        let completed = 0
-        
-        if (questions.length === 0) {
-          resolve(0)
-          return
-        }
-        
-        questions.forEach(question => {
-          const deleteRequest = store.delete(question.id)
-          deleteRequest.onsuccess = () => {
-            completed++
-            if (completed === questions.length) {
-              resolve(completed)
-            }
+      let completed = 0
+
+      questions.forEach((question) => {
+        const deleteRequest = store.delete(question.id)
+        deleteRequest.onerror = () => reject(deleteRequest.error)
+        deleteRequest.onsuccess = () => {
+          completed++
+          if (completed === questions.length) {
+            resolve(completed)
           }
-        })
-      }
+        }
+      })
+
       transaction.onerror = () => reject(transaction.error)
     })
   } catch (error) {
@@ -629,6 +584,60 @@ function clearLastUsedDeckId() {
     localStorage.removeItem('promptquiz_last_deck_id')
   } catch (error) {
     console.warn('Failed to clear last used deck ID from localStorage:', error)
+  }
+}
+
+// Delete review schedule rows for specific questions
+async function deleteReviewSchedulesByQuestionIds(questionIds) {
+  const ids = [...new Set(questionIds)].filter((id) => id != null)
+  if (ids.length === 0) {
+    return 0
+  }
+
+  try {
+    const db = await initDB()
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['reviewSchedule'], 'readwrite')
+      const store = transaction.objectStore('reviewSchedule')
+      const index = store.index('questionId')
+
+      let pendingDeletes = 0
+      let completedLookups = 0
+      let deleted = 0
+
+      const maybeFinish = () => {
+        if (completedLookups === ids.length && pendingDeletes === 0) {
+          resolve(deleted)
+        }
+      }
+
+      ids.forEach((questionId) => {
+        const request = index.get(questionId)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          completedLookups++
+          const review = request.result
+
+          if (review) {
+            pendingDeletes++
+            const deleteRequest = store.delete(review.id)
+            deleteRequest.onerror = () => reject(deleteRequest.error)
+            deleteRequest.onsuccess = () => {
+              deleted++
+              pendingDeletes--
+              maybeFinish()
+            }
+          } else {
+            maybeFinish()
+          }
+        }
+      })
+
+      transaction.onerror = () => reject(transaction.error)
+    })
+  } catch (error) {
+    throw new Error(`Failed to delete review schedules: ${error.message}`)
   }
 }
 
@@ -957,6 +966,7 @@ export {
   updateReviewSchedule,
   getDueReviews,
   deleteReviewSchedule,
+  deleteReviewSchedulesByQuestionIds,
   getRecentReviewTimestamps,
   getReviewStatsByDeckId,
 
