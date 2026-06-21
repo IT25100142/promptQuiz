@@ -94,6 +94,29 @@ A. Only one option
     expect(validation.ok).toBe(true);
   });
 
+  it('parses MCQ blocks with [Multiple Choice] type marker on its own line', () => {
+    const rawInput = `
+[Multiple Choice]
+Which of the following Python data types is immutable?
+list
+dictionary
+set
+tuple
+*tuple
+`;
+
+    const parsed = parseRawInput(rawInput);
+    expect(parsed.length).toBe(1);
+    expect(parsed[0].type).toBe('multiple-choice');
+    expect(parsed[0].question).toBe('Which of the following Python data types is immutable?');
+    expect(parsed[0].options).toEqual(['list', 'dictionary', 'set', 'tuple']);
+    expect(parsed[0].answerIndex).toBe(3);
+    expect(parsed[0].answer).toBe('tuple');
+
+    const validation = validateQuestionStructure(parsed);
+    expect(validation.ok).toBe(true);
+  });
+
   it('parses CSV format question lists', () => {
     const rawInput = `
 Question: Which hook executes side effects?
