@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useQuizLibrary, useQuizShell } from '../contexts/QuizContext.jsx';
 import AiPromptBuilderModal from '../features/ai/AiPromptBuilderModal.jsx';
 import CommandHUD from './CommandHUD.jsx';
+import RouteErrorBoundary from './RouteErrorBoundary.jsx';
 
 export default function Layout({ children }) {
   const library = useQuizLibrary();
@@ -172,7 +173,9 @@ export default function Layout({ children }) {
 
       {/* Main Container Slot */}
       <main className="relative flex-1 w-full max-w-screen-2xl mx-auto px-6 md:px-12 lg:px-16 py-8 flex flex-col animate-fade-in">
-        {children || <Outlet />}
+        <RouteErrorBoundary>
+          {children || <Outlet />}
+        </RouteErrorBoundary>
       </main>
 
       {/* Global Toast Notification System */}
