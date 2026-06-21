@@ -6,10 +6,12 @@ import CreateDeckPage from './pages/CreateDeckPage.jsx';
 import QuizPage from './pages/QuizPage.jsx';
 import ResultsPage from './pages/ResultsPage.jsx';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
+
 export default function App() {
   return (
     <QuizProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={routerBasename}>
         <Routes>
           {/* Main Layout wrapping all routes */}
           <Route element={<Layout />}>
