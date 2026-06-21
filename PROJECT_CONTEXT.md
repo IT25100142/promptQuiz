@@ -2,7 +2,8 @@
 
 > **Purpose of this document:** Help developers and AI coding agents understand PromptQuiz quickly, accurately, and safely before making changes.  
 > **Last verified against codebase:** June 2026  
-> **Primary sources:** `package.json`, `src/App.jsx`, `src/shared/services/indexedDB.js`, `README.md`
+> **Primary sources:** `package.json`, `src/App.jsx`, `src/shared/services/indexedDB.js`, `vite.config.js`, `.github/workflows/deploy.yml`, `README.md`  
+> **Live demo:** https://IT25100142.github.io/promptQuiz/
 
 ---
 
@@ -18,7 +19,7 @@
 
 **Core purpose:** Build, store, practice, and review question decks entirely in the browser.
 
-**Development status:** Appears actively developed. Version `1.0.0` in `package.json`. README is detailed. Some feature components exist but are not wired into routes (see Section 14).
+**Development status:** Version `1.0.0` in `package.json`. Public release–ready frontend SPA with GitHub Pages deployment via GitHub Actions. Orphan components and duplicate modules were removed in a pre-release cleanup (see Section 14).
 
 **Project type:** **Frontend SPA only** — no backend server, no REST/GraphQL API, no mobile native app, no database server. All persistence is client-side (IndexedDB + localStorage).
 
@@ -49,6 +50,8 @@
 | eslint-plugin-jsx-a11y | Accessibility lint rules | `eslint.config.js` |
 | eslint-plugin-react-refresh | Vite HMR compatibility | `eslint.config.js` |
 | npm | Package manager | `package-lock.json`, README |
+| GitHub Actions | CI/CD — lint/build/test on deploy workflow | `.github/workflows/deploy.yml` |
+| GitHub Pages | Static hosting for production build | `.github/workflows/deploy.yml`, `vite.config.js` (`base`) |
 
 **Not present in codebase:**
 
@@ -60,9 +63,7 @@
 - Form library (React Hook Form, Formik, etc.)
 - GraphQL, WebSockets, RPC
 - Third-party API integrations (no LLM API calls from the app)
-- CI/CD configuration files
-- Deployment platform config (Netlify, Vercel, etc.)
-- Environment variable files (`.env`, `.env.example`)
+- Environment variable files (`.env`, `.env.example`) — only Vite built-in `import.meta.env.BASE_URL` is used
 
 ---
 
@@ -70,29 +71,49 @@
 
 ```
 promptQuiz/
-├── index.html                    # HTML entry; mounts React at #root
+├── index.html                    # HTML entry; SPA route-restore script for GitHub Pages
 ├── package.json                  # Dependencies and npm scripts
 ├── package-lock.json             # npm lockfile
-├── vite.config.js                # Vite + React + Tailwind plugins; port 5173
+├── vite.config.js                # Vite + React + Tailwind; base '/promptQuiz/'
 ├── vitest.config.js              # Vitest config (jsdom, setup file)
 ├── eslint.config.js              # ESLint 9 flat config
 ├── README.md                     # User-facing project documentation
 ├── PROJECT_CONTEXT.md            # This file — agent/developer context
+├── LINKEDIN_POST.md              # Author social post draft (tracked in git)
+├── .github/
+│   └── workflows/
+│       └── deploy.yml            # GitHub Actions → build → GitHub Pages
 ├── public/
-│   └── favicon.svg
+│   ├── favicon.svg
+│   └── 404.html                  # GitHub Pages SPA fallback for deep links
 └── src/
     ├── main.jsx                  # React root mount (StrictMode)
-    ├── App.jsx                   # Router + QuizProvider
-    ├── index.css                 # Tailwind v4 + custom theme/animations
-    ├── components/               # Legacy/shared UI (Layout, QuizView, modals)
+    ├── App.jsx                   # Router (basename from BASE_URL) + QuizProvider
+    ├── index.css                 # Tailwind v4 + glassmorphism theme/animations
+    ├── components/               # Active shared UI (Layout, QuizView, modals, error boundary)
+    │   ├── Layout.jsx
+    │   ├── QuizView.jsx
+    │   ├── CommandHUD.jsx
+    │   ├── CardOverviewModal.jsx
+    │   └── RouteErrorBoundary.jsx
     ├── contexts/
     │   └── QuizContext.jsx       # Three-slice context provider
-    ├── pages/                    # Route-level page components
-    ├── features/                 # Domain modules (ai, decks, quiz, ui, questions)
+    ├── pages/                    # Route-level page components (4 pages)
+    ├── features/
+    │   ├── ai/
+    │   │   └── AiPromptBuilderModal.jsx
+    │   ├── quiz/
+    │   │   ├── components/Progress/   # ProgressBar, QuizProgress
+    │   │   ├── hooks/                 # Reducer, session, deck sync, navigation
+    │   │   ├── utils/                 # Scoring, shuffle, metrics
+    │   │   └── constants/
+    │   └── ui/
+    │       └── display/
+    │           └── MarkdownRenderer.jsx
     ├── shared/
     │   ├── schemas/              # Zod validation schemas
     │   ├── services/             # IndexedDB + SM-2 algorithm
-    │   ├── utils/                # Parsers, helpers, formatters
+    │   ├── utils/                # parsers.js (source of truth), helpers.js, formatters
     │   └── hooks/                # useLocalStorage
     └── test/
         └── setup.js              # Vitest setup (fake-indexeddb, cleanup)
@@ -102,27 +123,25 @@ promptQuiz/
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/pages/` | Top-level route components: DecksPage, CreateDeckPage, QuizPage, ResultsPage. HomePage exists but is **not routed**. |
-| `src/components/` | Shared UI used by active routes: Layout, QuizView, CommandHUD, modals, navigation. Some duplicates exist in `features/`. |
+| `src/pages/` | Top-level route components: `DecksPage`, `CreateDeckPage`, `QuizPage`, `ResultsPage`. |
+| `src/components/` | Active shared UI: `Layout`, `QuizView`, `CommandHUD`, `CardOverviewModal`, `RouteErrorBoundary`. |
 | `src/contexts/` | Global state via three memoized context slices (session, library, shell). |
-| `src/features/ai/` | AI Prompt Builder modal and prompt generation services. |
-| `src/features/decks/` | Deck/quiz browser components (partially unused — see Section 14). |
-| `src/features/quiz/` | Quiz reducer, hooks, scoring, progress, results subcomponents. |
-| `src/features/questions/` | Question editor component (not currently imported by routes). |
-| `src/features/ui/` | Reusable UI primitives (buttons, inputs, modals, MarkdownRenderer). |
+| `src/features/ai/` | `AiPromptBuilderModal.jsx` — LLM prompt generation and response import (no API calls). |
+| `src/features/quiz/` | Quiz reducer, hooks, scoring utilities, and progress subcomponents. |
+| `src/features/ui/display/` | `MarkdownRenderer.jsx` — canonical XSS-aware markdown renderer. |
 | `src/shared/services/` | IndexedDB CRUD and SM-2 spaced repetition math. |
 | `src/shared/schemas/` | Zod schemas for questions and library export/import. |
-| `src/shared/utils/` | Text/JSON parsers and legacy helper utilities. |
+| `src/shared/utils/` | `parsers.js` (single source of truth for parsing); `helpers.js` (cx, SAMPLE_QUIZ, re-exports). |
 
 ### How major parts connect
 
 ```
-index.html → main.jsx → App.jsx
+index.html → main.jsx → App.jsx (basename from BASE_URL)
                               ├── QuizProvider (QuizContext.jsx)
                               │     └── useQuiz() → quizReducer + hooks
-                              └── BrowserRouter → Layout → Outlet (pages)
+                              └── BrowserRouter → Layout → RouteErrorBoundary → Outlet (pages)
                                         ├── IndexedDB (persistence)
-                                        ├── parsers + Zod (validation)
+                                        ├── parsers.js + Zod (validation)
                                         └── localStorage (preferences)
 ```
 
@@ -217,7 +236,6 @@ index.html → main.jsx → App.jsx
 
 **Important files:**
 - `src/features/ai/AiPromptBuilderModal.jsx`
-- `src/features/ai/services/aiPromptGenerator.js`
 - `src/shared/utils/parsers.js`
 
 **External services:** User's choice of external LLM (not integrated in code)
@@ -305,7 +323,7 @@ completeQuizSession() → ResultsPage reads score from context
 - Parse/validation errors → toast via `shell.showToast()` or `appNotice` state.
 - IndexedDB failures → thrown errors caught in page/hook handlers, logged with `console.error`, user-facing toast.
 - Empty quiz at `/quiz` → inline empty state with link to create deck.
-- RouteErrorBoundary exists (`src/components/RouteErrorBoundary.jsx`) but is **not wired** into App.jsx.
+- Render errors in routed pages → caught by `RouteErrorBoundary` wrapping `<Outlet />` in `Layout.jsx`.
 
 ---
 
@@ -331,10 +349,10 @@ Browser Storage (IndexedDB / localStorage)
 
 ### Frontend architecture
 
-- **Routing:** React Router 7 with nested layout route (`Layout` wraps all pages).
+- **Routing:** React Router 7 with nested layout route (`Layout` wraps all pages). `BrowserRouter` uses `basename` derived from `import.meta.env.BASE_URL` for GitHub Pages subpath hosting.
 - **State:** Single `useReducer` in `useQuizState.js`, split into three memoized context values to limit re-renders.
-- **Feature folders:** Domain code under `src/features/{ai,decks,quiz,questions,ui}`.
-- **Legacy components:** `src/components/` holds actively used UI; overlaps with `features/ui/` and `features/quiz/components/`.
+- **Feature folders:** Domain code under `src/features/{ai,quiz,ui}`.
+- **Shared components:** `src/components/` holds actively used layout and quiz UI; `src/features/` holds domain modules and canonical `MarkdownRenderer`.
 
 ### Backend architecture
 
@@ -364,12 +382,10 @@ decks (1) ──→ (many) quizzes ──→ (many) questions
 
 ### Architectural weaknesses / unusual decisions
 
-1. **Dual parser implementations:** `parsers.js` and `helpers.js` both parse text formats — maintenance burden.
-2. **Duplicate UI components:** Two MarkdownRenderer implementations; duplicate ProgressBar/QuizProgress.
-3. **Orphan feature components:** Several components in `features/` are not imported anywhere.
-4. **SM-2 writes in QuizView:** Review schedule updates happen inside a UI component rather than a dedicated service hook.
-5. **No error boundary in router:** RouteErrorBoundary exists but unused.
-6. **Zod v4 alpha:** Production dependency on pre-release Zod.
+1. **SM-2 writes in QuizView:** Review schedule updates happen inside a UI component rather than a dedicated service hook.
+2. **Zod v4 alpha:** Production dependency on pre-release Zod (`^4.0.0-alpha.1`).
+3. **GitHub Pages subpath:** `vite.config.js` sets `base: '/promptQuiz/'`; repo renames or user/org Pages URLs require updating `base`, `404.html` `pathSegmentsToKeep`, and router basename together.
+4. **No LICENSE file:** README references open source but no license file in repo root.
 
 ---
 
@@ -536,7 +552,7 @@ If a backend is added in the future, document new endpoints here.
 
 **Used by:** `src/main.jsx`
 
-**Notes:** Routes: `/`, `/decks`, `/create-deck`, `/create` (redirect), `/quiz`, `/results`
+**Notes:** Routes: `/`, `/decks`, `/create-deck`, `/create` (redirect), `/quiz`, `/results`. `BrowserRouter` `basename` is derived from Vite `import.meta.env.BASE_URL` (trailing slash stripped) for GitHub Pages at `/promptQuiz/`.
 
 ---
 
@@ -629,41 +645,42 @@ If a backend is added in the future, document new endpoints here.
 
 ### src/shared/utils/parsers.js
 
-**Purpose:** Primary multi-format text parser for deck creation and AI import.
+**Purpose:** Single source of truth for multi-format text/JSON parsing.
 
 **Responsibilities:**
-- `sanitizeInput`, `detectFormat`, `parseRawInput`
+- `sanitizeInput`, `detectFormat`, `parseRawInput`, `safeParseQuizJson`
 - Parse AI block, markdown, and CSV formats into question objects
 
-**Used by:** `CreateDeckPage.jsx`, `AiPromptBuilderModal.jsx`, tests
+**Used by:** `CreateDeckPage.jsx`, `AiPromptBuilderModal.jsx`, `helpers.js` (re-export), tests
 
 ---
 
 ### src/shared/utils/helpers.js
 
-**Purpose:** Legacy utilities and alternate parser (`safeParseQuizJson`).
+**Purpose:** Shared utilities and thin re-export layer for parsing.
 
 **Responsibilities:**
 - `cx()` class name helper
 - `SAMPLE_QUIZ` demo data
-- `safeParseQuizJson()` — JSON + text parsing (parallel to parsers.js)
-- Additional parse functions: `parseTextFormat`, `parseCSVFormat`, `parseMarkdownFormat`, etc.
+- `getScore()`, `formatSampleJson()`
+- `safeParseQuizJson()` — re-exports from `parsers.js`
 
 **Used by:** `useQuizState.js`, `useQuizJsonInput.js`, various components for `cx()`
 
-**Notes:** Changes to import formats may require updates here AND in `parsers.js`
+**Notes:** Do not duplicate parse logic here — extend `parsers.js` instead.
 
 ---
 
 ### src/components/Layout.jsx
 
-**Purpose:** App shell with navigation, theme, toast, AI modal, Command HUD.
+**Purpose:** App shell with navigation, theme, toast, AI modal, Command HUD, and error boundary.
 
 **Responsibilities:**
 - Sticky header with nav links
 - Dark/light theme toggle (localStorage `theme`)
 - Global toast auto-dismiss (3s)
 - Render `AiPromptBuilderModal` and `CommandHUD`
+- Wrap `<Outlet />` in `RouteErrorBoundary`
 
 **Used by:** `App.jsx` as layout route element
 
@@ -691,11 +708,36 @@ If a backend is added in the future, document new endpoints here.
 **Purpose:** Modal for LLM prompt generation and response import.
 
 **Responsibilities:**
-- Generate prompt from user config
+- Generate prompt from user config (inline — no separate service module)
 - Copy to clipboard
 - Parse pasted LLM output and save to deck/quiz
 
 **Used by:** `Layout.jsx`
+
+---
+
+### src/components/RouteErrorBoundary.jsx
+
+**Purpose:** React error boundary for routed page render failures.
+
+**Responsibilities:**
+- Catch unhandled render errors in child routes
+- Show recovery UI with link back to `/decks`
+- Support dark mode styling
+
+**Used by:** `Layout.jsx` (wraps `<Outlet />`)
+
+---
+
+### src/features/ui/display/MarkdownRenderer.jsx
+
+**Purpose:** Canonical markdown renderer for question text.
+
+**Responsibilities:**
+- Escape HTML entities before rendering via `dangerouslySetInnerHTML`
+- Support basic markdown formatting (bold, italic, code, links)
+
+**Used by:** `QuizPage.jsx` (passed as prop to `QuizView`)
 
 ---
 
@@ -730,13 +772,11 @@ If a backend is added in the future, document new endpoints here.
 
 ### Environment variables
 
-**No environment variables are used in this project.**
-
-No `.env`, `.env.example`, or `import.meta.env` references were found.
+**No custom environment variables are used.** Vite exposes built-in `import.meta.env.BASE_URL` for subpath deployment.
 
 | Variable | Purpose | Required | Example Safe Value | Where Used |
 |----------|---------|----------|-------------------|------------|
-| *(none)* | — | — | — | — |
+| `import.meta.env.BASE_URL` | Vite base path for assets and router | Yes (set by Vite) | `"/promptQuiz/"` | `src/App.jsx` (`BrowserRouter` basename) |
 
 ### localStorage keys (client configuration)
 
@@ -751,12 +791,14 @@ No `.env`, `.env.example`, or `import.meta.env` references were found.
 | File | Purpose |
 |------|---------|
 | `package.json` | Dependencies, scripts (`dev`, `build`, `preview`, `lint`, `test`, `test:watch`) |
-| `vite.config.js` | Vite plugins (React, Tailwind); dev server port **5173**, `host: true` |
+| `vite.config.js` | Vite plugins (React, Tailwind); `base: '/promptQuiz/'`; dev server port **5173**, `host: true` |
 | `vitest.config.js` | Test environment jsdom, setup file, globals |
 | `eslint.config.js` | ESLint flat config; ignores `dist/`; jsx-a11y recommended |
-| `index.html` | SPA HTML shell, title "PromptQuiz" |
-| `src/index.css` | Tailwind v4 import, dark variant, custom theme tokens, animations |
-| `.gitignore` | Ignores `node_modules`, `dist`, `*.local`; allows `README.md` and `PROJECT_CONTEXT.md` |
+| `index.html` | SPA HTML shell; route-restore script for GitHub Pages deep links |
+| `public/404.html` | GitHub Pages SPA fallback (redirects deep links to `index.html`) |
+| `.github/workflows/deploy.yml` | Push to `main` → `npm ci` → build → deploy to GitHub Pages |
+| `src/index.css` | Tailwind v4 import, dark variant, glassmorphism theme tokens, animations |
+| `.gitignore` | Ignores `node_modules`, `dist`, `*.local`, most `*.md`; allows `README.md`, `PROJECT_CONTEXT.md`, `LINKEDIN_POST.md` |
 
 **Secrets warning:** No API keys are needed today. If backend or LLM integration is added later, use a local `.env` file and add `.env` to `.gitignore`. Never commit real credentials.
 
@@ -772,7 +814,7 @@ No `.env`, `.env.example`, or `import.meta.env` references were found.
 ### Installation
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/IT25100142/promptQuiz.git
 cd promptQuiz
 npm install
 ```
@@ -797,11 +839,33 @@ IndexedDB is created automatically on first app load via `initDB()` in QuizProvi
 npm run dev
 ```
 
-Open http://localhost:5173
+Open http://localhost:5173/promptQuiz/ (Vite `base` is `/promptQuiz/` in all environments)
 
 **Notes:**
 - Vite dev server runs on port **5173** with `host: true` (`vite.config.js`)
+- `base: '/promptQuiz/'` applies to dev, preview, and production builds — matches GitHub Pages URL
 - Windows helper `start.bat` exists but is gitignored
+
+### Production build and preview
+
+```bash
+npm run build         # output to /dist with /promptQuiz/ asset paths
+npm run preview       # serve /dist locally — open the URL Vite prints (includes base path)
+```
+
+### GitHub Pages deployment
+
+**Live URL:** https://IT25100142.github.io/promptQuiz/
+
+Deployment is automated via `.github/workflows/deploy.yml`:
+
+1. Push to `main` (or manual `workflow_dispatch`)
+2. `npm ci` → `npm run build`
+3. Upload `dist/` artifact → deploy with `actions/deploy-pages@v4`
+
+**One-time GitHub repo settings:** Settings → Pages → Source: **GitHub Actions**.
+
+**SPA deep-link support:** `public/404.html` + route-restore script in `index.html` (see [spa-github-pages](https://github.com/rafgraph/spa-github-pages)). If the repo name or Pages URL changes, update `vite.config.js` `base`, `404.html` `pathSegmentsToKeep`, and verify router basename.
 
 ### Tests
 
@@ -816,13 +880,6 @@ npm run test:watch    # watch mode
 npm run lint
 ```
 
-### Production build
-
-```bash
-npm run build         # output to /dist
-npm run preview       # serve /dist locally
-```
-
 ### Common setup problems
 
 | Issue | Solution |
@@ -830,8 +887,9 @@ npm run preview       # serve /dist locally
 | Peer dependency errors | `npm install --legacy-peer-deps` |
 | Blank quiz at `/quiz` | Start a quiz from `/decks` first |
 | IndexedDB cleared | Re-import library backup JSON |
-| 404 on production refresh | Configure SPA fallback to `/index.html` on host |
+| 404 on production refresh / deep links | Verify `public/404.html`, `index.html` route-restore script, and `vite.config.js` `base` match repo name |
 | Tailwind styles missing | Ensure `@tailwindcss/vite` is in `vite.config.js` |
+| Assets 404 on GitHub Pages | Confirm `base: '/promptQuiz/'` matches repo name and Pages URL |
 
 ---
 
@@ -853,13 +911,14 @@ npm run preview       # serve /dist locally
 | Change type | Location |
 |-------------|----------|
 | New page/route | `src/pages/` + register in `src/App.jsx` |
-| Reusable UI component | Prefer `src/features/ui/`; avoid duplicating `src/components/` |
+| Reusable UI component | Prefer `src/features/ui/` for display primitives; use `src/components/` for layout/session UI |
 | Deck/quiz business logic | `src/features/quiz/hooks/` or `src/shared/services/indexedDB.js` |
-| New question type | `quizQuestions.js` (Zod) + `parsers.js` + `helpers.js` + QuizView rendering |
+| New question type | `quizQuestions.js` (Zod) + `parsers.js` + `QuizView.jsx` rendering |
 | Persistence changes | `src/shared/services/indexedDB.js` (bump DB_VERSION if schema changes) |
-| AI prompt logic | `src/features/ai/` |
+| AI prompt logic | `src/features/ai/AiPromptBuilderModal.jsx` |
 | Tests | Co-locate as `*.test.js` or `*.test.jsx` beside source |
 | Global styles | `src/index.css` |
+| Deployment / base path | `vite.config.js`, `public/404.html`, `index.html`, `src/App.jsx` |
 
 ### Coding conventions (detected)
 
@@ -881,10 +940,11 @@ Not clearly identified from the codebase. No CONTRIBUTING.md or commit lint conf
 2. Run `npm run lint` and `npm test` after changes.
 3. Do not add backend/API code unless explicitly requested.
 4. Do not introduce new state management libraries.
-5. Update both parsers if changing import format.
+5. Extend `parsers.js` for import format changes — `helpers.js` only re-exports.
 6. Bump IndexedDB version and add migration if changing stores.
 7. Preserve three-slice context pattern — do not merge into one context.
 8. Prefer extending existing hooks over creating parallel state paths.
+9. When changing GitHub Pages base path, update `vite.config.js`, `404.html`, and verify router basename together.
 
 ---
 
@@ -936,7 +996,7 @@ No test coverage reporting configured. Coverage percentage not available.
 2. QuizView navigation and shuffle mode
 3. AiPromptBuilderModal paste-import flow
 4. CreateDeckPage end-to-end with all text formats
-5. Broken-path regression test if ResultsDisplay is wired up
+5. GitHub Pages base-path smoke test (optional — build + preview with `/promptQuiz/` base)
 
 ---
 
@@ -944,45 +1004,28 @@ No test coverage reporting configured. Coverage percentage not available.
 
 No `TODO`, `FIXME`, `BUG`, or `HACK` comments were found in source files.
 
-### Incomplete / orphan code
+### Pre-release cleanup (completed)
 
-| Item | Location | Issue |
-|------|----------|-------|
-| HomePage | `src/pages/HomePage.jsx` | Not registered in `App.jsx` router |
-| RouteErrorBoundary | `src/components/RouteErrorBoundary.jsx` | Not used in App |
-| FolderDeckBrowser | `src/features/decks/components/FolderDeckBrowser/` | No imports found |
-| DeckManager | `src/features/decks/components/DeckManager/` | No imports found |
-| QuestionEditor | `src/features/questions/components/QuestionEditor/` | No imports found |
-| ResultsDisplay | `src/features/quiz/components/Results/ResultsDisplay.jsx` | No imports; **broken import path** for MarkdownRenderer |
-| ResultsView | `src/components/ResultsView.jsx` | No imports found |
-| aiPromptGenerator | `src/features/ai/services/aiPromptGenerator.js` | May be superseded by inline logic in AiPromptBuilderModal |
+The following orphan/duplicate modules were **removed** before public release:
 
-### Duplicate components
+- Pages: `HomePage.jsx`
+- Components: `Navigation.jsx`, `QuizQuestion.jsx`, `QuizToolbar.jsx`, `QuizResults.jsx`, `AnswerButton.jsx`, `SavedDecksModal.jsx`, `SaveDeckModal.jsx`, `ResultsView.jsx`, duplicate `ProgressBar.jsx`, `QuizProgress.jsx`, `MarkdownRenderer.jsx`
+- Features: entire `features/decks/`, `features/questions/`, old `AIPromptBuilder` subtree, `aiPromptGenerator.js`, unused `features/ui/forms/` and `features/ui/layout/Header.jsx`, unused `features/quiz/components/Results/`
 
-| Component | Locations |
-|-----------|-----------|
-| MarkdownRenderer | `src/components/MarkdownRenderer.jsx` (richer XSS escaping), `src/features/ui/display/MarkdownRenderer.jsx` (simpler) |
-| ProgressBar | `src/components/ProgressBar.jsx`, `src/features/quiz/components/Progress/ProgressBar.jsx` |
-| QuizProgress | `src/components/QuizProgress.jsx`, `src/features/quiz/components/Progress/QuizProgress.jsx` |
+### Remaining maintenance items
 
-Active quiz route uses `features/ui/display/MarkdownRenderer.jsx` via QuizPage.
-
-### Maintenance risks
-
-1. **Dual parsers:** `parsers.js` vs `helpers.js` — format changes need dual updates
-2. **Zod v4 alpha:** `"zod": "^4.0.0-alpha.1"` may have breaking changes
-3. **No LICENSE file** despite README mention
-4. **No deployment/SPA redirect config** for production hosts
-5. **No CI/CD** pipeline in repo
-
-### Console logging
-
-Extensive `console.error` / `console.warn` in catch blocks across pages and services — not structured logging.
+| Item | Issue |
+|------|-------|
+| Zod v4 alpha | `"zod": "^4.0.0-alpha.1"` in `package.json` — pre-release dependency |
+| No LICENSE file | README references open source; no `LICENSE` in repo root |
+| ESLint warnings | 4 pre-existing warnings (a11y label in `AiPromptBuilderModal.jsx`, unused vars in `useQuizDeckSync.js`, `parsers.js`, `setup.js`) |
+| SM-2 in QuizView | Review schedule writes live in UI component, not a dedicated hook |
+| Screenshot placeholders | README references `docs/screenshots/` and `docs/assets/` — folders/media not yet committed |
+| Console logging | Extensive `console.error` / `console.warn` in catch blocks — not structured logging |
 
 ### Mock / placeholder data
 
 - `SAMPLE_QUIZ` in `helpers.js` used for demo/load sample feature
-- HomePage marketing copy references "thousands of learners" — placeholder marketing text
 
 ---
 
@@ -1006,8 +1049,7 @@ Extensive `console.error` / `console.warn` in catch blocks across pages and serv
 ### XSS / content rendering
 
 - Question text rendered via `MarkdownRenderer` using `dangerouslySetInnerHTML`
-- `src/components/MarkdownRenderer.jsx` escapes HTML entities before rendering (stronger)
-- `src/features/ui/display/MarkdownRenderer.jsx` escapes `&`, `<`, `>` but uses regex replacements — review if used with untrusted pasted content
+- Canonical renderer: `src/features/ui/display/MarkdownRenderer.jsx` — escapes HTML entities (`&`, `<`, `>`, `"`, `'`) before rendering
 - User-pasted LLM output is stored and rendered — treat as untrusted input
 
 ### API security
@@ -1041,8 +1083,9 @@ Not applicable for local dev. Production static hosting should configure standar
 
 1. Read `src/contexts/QuizContext.jsx` and `src/features/quiz/hooks/useQuizState.js` to understand state shape.
 2. Read `src/shared/services/indexedDB.js` for any persistence-related change.
-3. Check whether the feature uses `parsers.js` or `helpers.js` for parsing.
+3. For parsing/import changes, edit `src/shared/utils/parsers.js` only (`helpers.js` re-exports).
 4. Inspect the target page in `src/pages/` and its imported components.
+5. For deployment/routing changes, check `vite.config.js` `base`, `src/App.jsx` basename, and `public/404.html`.
 
 ### Most important files
 
@@ -1051,15 +1094,19 @@ Not applicable for local dev. Production static hosting should configure standar
 - `src/features/quiz/hooks/useQuizState.js` — state composition
 - `src/shared/services/indexedDB.js` — all persistence
 - `src/shared/schemas/quizQuestions.js` — validation source of truth
+- `src/shared/utils/parsers.js` — parsing source of truth
 - `src/components/QuizView.jsx` — quiz UI + SM-2 writes
+- `src/features/ui/display/MarkdownRenderer.jsx` — question text rendering
+- `.github/workflows/deploy.yml` — GitHub Pages deployment
 
 ### Handle with care
 
 - `indexedDB.js` — bump `DB_VERSION` and add migration logic for schema changes
 - `quizQuestions.js` — changes affect import, export, preview, and session validation
-- Both `parsers.js` and `helpers.js` — keep in sync or consolidate
+- `parsers.js` — single source of truth for all import formats
 - `quizReducer.js` / `useQuizState.js` — broad impact on all pages
 - Library import (`importLibrarySnapshot`) — destructive replace mode
+- `vite.config.js` `base` + `App.jsx` basename + `404.html` — must stay in sync for GitHub Pages
 
 ### Conventions to preserve
 
@@ -1075,8 +1122,8 @@ Not applicable for local dev. Production static hosting should configure standar
 - Adding authentication
 - Introducing Redux, Zustand, or other state libraries
 - Replacing IndexedDB with a different storage without migration plan
-- Deleting orphan components without confirming they are unused
 - Upgrading Zod major version without running all schema tests
+- Changing `base` in `vite.config.js` without updating SPA fallback files
 
 ### How to add features safely
 
@@ -1090,10 +1137,9 @@ Not applicable for local dev. Production static hosting should configure standar
 
 ### How to modify UI safely
 
-- Match existing Tailwind patterns (rounded-2xl/3xl, indigo/slate palette, dark mode classes)
+- Match existing Tailwind patterns (glassmorphism, rounded-2xl/3xl, indigo/slate palette, dark mode classes)
 - Use `dark:` variants for theme support
-- Prefer `features/ui/` primitives for new shared UI
-- Pass MarkdownRenderer as prop to QuizView rather than hardcoding import inside
+- Use `src/features/ui/display/MarkdownRenderer.jsx` for question text — pass as prop to `QuizView`
 
 ### How to test after changes
 
@@ -1105,11 +1151,11 @@ npm run build   # verify production build succeeds
 
 ### Common mistakes to avoid
 
-- Editing only one parser when both are used for similar formats
+- Duplicating parse logic in `helpers.js` instead of extending `parsers.js`
 - Navigating to `/quiz` without loading questions into session first
 - Forgetting to update Zod when adding question fields
 - Creating a fourth context slice without strong justification
-- Using `components/MarkdownRenderer` and `features/ui/display/MarkdownRenderer` interchangeably — they differ
+- Breaking GitHub Pages by changing repo name without updating `base` and SPA fallback
 
 ---
 
@@ -1119,30 +1165,26 @@ npm run build   # verify production build succeeds
 
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
-| Consolidate parsers | Dual implementations drift easily | Extract shared parse logic; make `helpers.js` delegate to `parsers.js` | `parsers.js`, `helpers.js` |
-| Fix or remove orphan components | Dead code confuses contributors | Audit imports; delete or wire up | `HomePage.jsx`, `features/decks/*`, `ResultsDisplay.jsx` |
-| Add SPA fallback deploy config | Production refresh 404 on deep links | Add `_redirects` (Netlify) or `vercel.json` | repo root |
-| Fix ResultsDisplay import | Broken path if component is used | Change to `../../../ui/display/MarkdownRenderer.jsx` | `ResultsDisplay.jsx` |
+| Add LICENSE file | README references open source | Add MIT or chosen license | repo root |
+| Add screenshot assets | README has placeholder paths | Add images to `docs/screenshots/`, `docs/assets/` | README.md |
+| Pin Zod to stable release | Alpha dependency risk | Evaluate Zod v3 stable or v4 stable when available | `package.json` |
 
 ### Medium Priority
 
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
-| Consolidate MarkdownRenderer | Two implementations, different XSS handling | Pick one; update all imports | Both MarkdownRenderer files |
-| Wire RouteErrorBoundary | Unhandled render errors crash app | Wrap `<Outlet />` in Layout | `Layout.jsx`, `RouteErrorBoundary.jsx` |
-| Add CI workflow | No automated lint/test on push | GitHub Actions running lint + test | `.github/workflows/` |
-| Pin Zod to stable release | Alpha dependency risk | Evaluate Zod v3 stable or v4 stable when available | `package.json` |
 | Extract SM-2 writes from QuizView | UI component doing persistence | Create `useReviewSchedule` hook | `QuizView.jsx`, new hook |
+| Fix ESLint warnings | 4 pre-existing warnings | Address a11y label and unused vars | `AiPromptBuilderModal.jsx`, `useQuizDeckSync.js`, `parsers.js`, `setup.js` |
+| Add lint/test to deploy workflow | Deploy only runs build today | Add `npm run lint && npm test` before build | `.github/workflows/deploy.yml` |
+| Add test coverage reporting | Visibility into gaps | Configure vitest coverage | `vitest.config.js` |
 
 ### Low Priority
 
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
-| Add LICENSE file | README references open-source license | Add MIT or chosen license | repo root |
 | Remove console.error noise | Clutter in production console | Centralize error reporting or user toasts only | various pages |
-| Re-route or delete HomePage | Orphan landing page | Add `/home` route or delete file | `HomePage.jsx`, `App.jsx` |
-| Add test coverage reporting | Visibility into gaps | Configure vitest coverage | `vitest.config.js` |
-| Document deployment target | Unknown hosting setup | Add deploy section to README | README.md |
+| Offline font bundling | Google Fonts CDN in `index.css` | Self-host or use system font stack | `src/index.css` |
+| Custom domain for GitHub Pages | Optional branded URL | Configure CNAME + DNS | GitHub Pages settings |
 
 ---
 
@@ -1162,12 +1204,32 @@ npm run build   # verify production build succeeds
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
-npm test
+npm run dev          # http://localhost:5173/promptQuiz/
+npm test             # 38 tests, 10 files
 npm run lint
-npm run build
-npm run preview
+npm run build        # assets prefixed with /promptQuiz/
+npm run preview      # test production build locally
 ```
+
+### Deployment
+
+| Item | Value |
+|------|-------|
+| Live URL | https://IT25100142.github.io/promptQuiz/ |
+| GitHub repo | https://github.com/IT25100142/promptQuiz |
+| Workflow | `.github/workflows/deploy.yml` |
+| Vite base | `/promptQuiz/` in `vite.config.js` |
+
+### Active component paths
+
+| Component | Path |
+|-----------|------|
+| Layout | `src/components/Layout.jsx` |
+| QuizView | `src/components/QuizView.jsx` |
+| MarkdownRenderer | `src/features/ui/display/MarkdownRenderer.jsx` |
+| ProgressBar / QuizProgress | `src/features/quiz/components/Progress/` |
+| AI Prompt Builder | `src/features/ai/AiPromptBuilderModal.jsx` |
+| Error boundary | `src/components/RouteErrorBoundary.jsx` |
 
 ### Routes / pages
 
@@ -1203,7 +1265,7 @@ npm run preview
 | Task | Where |
 |------|-------|
 | Add route | `App.jsx` + `src/pages/` |
-| Add question type | `quizQuestions.js`, `parsers.js`, `helpers.js`, `QuizView.jsx` |
+| Add question type | `quizQuestions.js`, `parsers.js`, `QuizView.jsx` |
 | Change persistence | `indexedDB.js` |
 | Add test | `*.test.js(x)` beside source |
 | Change global theme | `src/index.css` |
@@ -1232,33 +1294,37 @@ npm run preview
 
 ## 20. Final Notes
 
+### Author and repository
+
+- **Author:** Sankalpa KMCP (SLIIT, first-year IT)
+- **GitHub:** https://github.com/IT25100142
+- **Repository:** https://github.com/IT25100142/promptQuiz
+- **Live demo:** https://IT25100142.github.io/promptQuiz/
+
 ### Could not be fully determined
 
-- **Deployment platform:** No Netlify, Vercel, or Docker config in repo. README mentions configuring SPA fallback manually.
-- **Orphan components intent:** Unclear if `features/decks/*`, `QuestionEditor`, `HomePage` are WIP or abandoned.
-- **Component home long-term:** Both `src/components/` and `src/features/ui/` are active — consolidation strategy not documented.
 - **License type:** README says open-source but no LICENSE file exists.
+- **Screenshot assets:** README references `docs/screenshots/` and `docs/assets/` — media may not be committed yet.
 
 ### Assumptions made
 
 - README accurately describes intended behavior; verified key claims against source code.
 - `npm` is the intended package manager (lockfile present, no pnpm/yarn/bun lockfiles).
-- Project is production-ready at v1.0.0 despite alpha Zod dependency and orphan code.
+- GitHub Pages deployment at `/promptQuiz/` matches repo name `promptQuiz` under user `IT25100142`.
 
 ### Recommended next documentation updates
 
-- Add deployment section once hosting target is chosen
-- Document question type JSON examples in PROJECT_CONTEXT when types are added
-- Update Section 14 when orphan components are wired or removed
+- Add LICENSE file and update README license badge link
+- Commit screenshot/GIF assets referenced in README
+- Update Section 14 when Zod is pinned to stable or ESLint warnings are resolved
 - Add CHANGELOG if release cadence increases
 
 ### Manual confirmation needed from maintainers
 
-1. Should `HomePage` be routed at `/` or removed?
-2. Are orphan feature components safe to delete?
-3. Which MarkdownRenderer should be the canonical implementation?
-4. Target deployment platform for SPA redirect configuration?
+1. Which open-source license to add (MIT suggested)?
+2. When to pin Zod from alpha to stable?
+3. Whether to add lint/test gates to the deploy workflow?
 
 ---
 
-*This document was generated from direct codebase inspection. Re-verify after major refactors.*
+*This document was updated from direct codebase inspection. Re-verify after major refactors.*
