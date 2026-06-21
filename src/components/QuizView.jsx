@@ -149,11 +149,14 @@ export default function QuizView({
   const isFlipped = !!(isAnswered() || showSuggestedAnswer[idx]);
 
   return (
-    <main className="flex flex-1 flex-col py-8 w-full max-w-5xl mx-auto px-4 md:px-0 font-sans relative">
+    <main className="flex flex-1 flex-col py-8 w-full max-w-5xl mx-auto px-4 md:px-0 font-sans relative animate-fade-in">
       {/* Live Monospace Session Log */}
-      <div className={cx("absolute top-0 left-0 right-0 w-full flex items-center justify-between px-4 py-2 text-[8px] font-mono tracking-widest text-emerald-600/70 dark:text-emerald-400/70 uppercase transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
+      <div className={cx("absolute top-0 left-0 right-0 w-full flex items-center justify-between px-4 py-2.5 rounded-full glass-nav text-[8px] font-mono tracking-widest text-emerald-600/80 dark:text-emerald-400/80 uppercase transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", isZenMode && "opacity-0 pointer-events-none scale-95 blur-sm")}>
         <span className="flex items-center gap-2">
-          <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="animate-glow-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          </span>
           [STATUS: ACTIVE_RECALL]
         </span>
         <span className="flex gap-4">
@@ -163,15 +166,15 @@ export default function QuizView({
       </div>
 
       {/* Editorial Mini Metadata & Control Bar */}
-      <div className={cx("flex justify-between items-center w-full px-1 mb-8 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-555 uppercase select-none transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
+      <div className={cx("flex justify-between items-center w-full px-1 mb-8 mt-10 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase select-none transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", isZenMode && "opacity-0 pointer-events-none scale-95 blur-sm")}>
         <span className="flex items-center gap-1.5">
           Card <span className="text-slate-800 dark:text-slate-200 font-bold">{String(idx + 1).padStart(2, '0')}</span> / <span className="font-semibold">{String(total).padStart(2, '0')}</span>
         </span>
-        <div className="flex items-center gap-6 font-medium">
+        <div className="flex items-center gap-2 sm:gap-3 font-medium">
           <button
             type="button"
             onClick={() => setShowCardOverview(true)}
-            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-all active:scale-[0.97] cursor-pointer"
+            className="pill-badge rounded-full px-3 py-1.5 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200 active:scale-[0.97] cursor-pointer"
           >
             Overview
           </button>
@@ -179,8 +182,10 @@ export default function QuizView({
             type="button"
             onClick={toggleShuffleMode}
             className={cx(
-              "transition-all active:scale-[0.97] cursor-pointer",
-              shuffleMode ? "text-indigo-600 dark:text-indigo-400 font-bold" : "hover:text-indigo-600 dark:hover:text-indigo-400"
+              "rounded-full px-3 py-1.5 transition-all duration-200 active:scale-[0.97] cursor-pointer",
+              shuffleMode
+                ? "text-indigo-700 dark:text-indigo-300 font-bold bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20"
+                : "pill-badge hover:text-indigo-600 dark:hover:text-indigo-400"
             )}
           >
             Shuffle: {shuffleMode ? 'ON' : 'OFF'}
@@ -189,8 +194,10 @@ export default function QuizView({
             type="button"
             onClick={() => setIsZenMode(!isZenMode)}
             className={cx(
-              "transition-all active:scale-[0.97] cursor-pointer font-bold",
-              isZenMode ? "text-emerald-500" : "hover:text-indigo-600 dark:hover:text-indigo-400"
+              "rounded-full px-3 py-1.5 transition-all duration-200 active:scale-[0.97] cursor-pointer font-bold",
+              isZenMode
+                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/20"
+                : "pill-badge hover:text-indigo-600 dark:hover:text-indigo-400"
             )}
           >
             [ ZEN ]
