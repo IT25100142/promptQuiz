@@ -17,10 +17,40 @@ The interface features a **premium glassmorphism design system**: ambient mesh b
 
 ---
 
+## Screenshots & Demo
+
+> Drop your media into `docs/screenshots/` and `docs/assets/`, then replace the placeholders below.
+
+### Live walkthrough
+
+<!-- Option A: embed a GIF -->
+<!-- ![PromptQuiz demo](docs/assets/demo.gif) -->
+
+<!-- Option B: link to a screen recording -->
+**[Add screen recording here](docs/assets/demo.mp4)** — _Replace with your `.mp4`, `.webm`, or YouTube/Loom link_
+
+### Library dashboard
+
+<!-- ![Library dashboard — light mode](docs/screenshots/decks-light.png) -->
+_Placeholder: `docs/screenshots/decks-light.png`_
+
+### Quiz session
+
+<!-- ![Active quiz with glass card UI](docs/screenshots/quiz-session.png) -->
+_Placeholder: `docs/screenshots/quiz-session.png`_
+
+### Dark mode
+
+<!-- ![Dark mode library view](docs/screenshots/decks-dark.png) -->
+_Placeholder: `docs/screenshots/decks-dark.png`_
+
+---
+
 ## Why PromptQuiz?
 
 | Principle | What it means |
-|-----------|----------------|
+| :--- | :--- |
+| **Free for students** | No paywalls or subscriptions — study without a credit card |
 | **Offline-first** | Full functionality without a network connection after first load |
 | **Privacy-first** | No server uploads; study data never leaves your browser |
 | **Developer-friendly** | Clean React architecture, Zod validation, Vitest tests, documented in [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) |
@@ -30,41 +60,14 @@ The interface features a **premium glassmorphism design system**: ambient mesh b
 
 ## Core Features
 
-### Active recall sessions
-Run interactive quiz sessions with five question types (multiple choice, true/false, fill-in-the-blank, cloze, short answer). Navigate forward and backward, shuffle cards, track score and progress, review mistakes, and use **Zen mode** for distraction-free study.
-
-### IndexedDB persistence (`PromptQuizDB`)
-Decks, quizzes, questions, and review schedules are stored locally in a relational-like IndexedDB schema. Export and import your entire library as validated JSON snapshots.
-
-### SM-2 spaced repetition
-Rate recall quality (1–5) after each answer. The SuperMemo-2 engine in `src/shared/services/sm2.js` calculates optimal review intervals and stores schedules in the `reviewSchedule` object store.
-
-### AI Prompt Builder
-Open the in-app modal, configure topic and question types, copy a formatted prompt to your preferred LLM, then paste the response back. The parser validates output and inserts questions into your deck — no API integration required.
-
-### Library backup and portability
-Export your full library from `/decks` or the Command HUD (`⌘K` → `>export`). Import restores decks with strict Zod schema validation.
-
-### Command HUD
-Press `Ctrl+K` / `⌘K` to search decks, jump to quizzes, toggle theme, export data, or enable focus mode.
-
----
-
-## Design & UI
-
-PromptQuiz uses a cohesive **Tailwind CSS v4** design system defined in `src/index.css`:
-
-| Element | Implementation |
-|---------|----------------|
-| **Typography** | DM Sans (UI) + Instrument Serif (question headings) |
-| **Glassmorphism** | `premium-glass`, `glass-nav`, `toast-glass` utilities with backdrop blur and inset highlights |
-| **Ambient depth** | `bg-premium-mesh` gradients + animated `ambient-orb` background elements |
-| **Motion** | `fade-in`, `scale-in`, `slide-in-up`, card flip transitions, glow-pulse indicators |
-| **Interactive polish** | `quiz-option` hover slides, gradient `btn-primary` CTAs, pill badges, focus rings |
-| **Dark mode** | Class-based `.dark` toggle with full light/dark token parity |
-| **Accessibility** | `prefers-reduced-motion` support |
-
-Key UI surfaces: floating glass navigation (`Layout.jsx`), 3D flip quiz cards with technical grid overlay (`QuizView.jsx`), and glass toast notifications.
+| Feature | Description |
+| :--- | :--- |
+| **Active recall sessions** | Five question types, navigation, shuffle, Zen mode, mistake review |
+| **IndexedDB persistence** | Decks → Quizzes → Questions hierarchy in `PromptQuizDB` |
+| **SM-2 spaced repetition** | Rate recall quality (1–5); smart review scheduling per card |
+| **AI Prompt Builder** | Copy prompts to external LLMs; paste responses back — no API keys |
+| **Library backup** | Export/import full library as validated JSON snapshots |
+| **Command HUD** | `Ctrl+K` / `⌘K` — search decks, export, toggle theme, focus mode |
 
 ---
 
