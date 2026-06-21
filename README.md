@@ -1,19 +1,56 @@
 # PromptQuiz
 
-**Live Demo:** [https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/](https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/) *(replace `YOUR_GITHUB_USERNAME` after enabling GitHub Pages)*
+[![Deploy to GitHub Pages](https://github.com/IT25100142/promptQuiz/actions/workflows/deploy.yml/badge.svg)](https://github.com/IT25100142/promptQuiz/actions/workflows/deploy.yml)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-4-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License](https://img.shields.io/badge/License-Open_Source-blue.svg)](#license)
 
 **A privacy-first, offline study app for active recall and spaced repetition — built entirely in the browser.**
 
-PromptQuiz is a single-page React application that lets you create quiz decks from JSON or plain text, practice with rich question types, schedule reviews with the SM-2 algorithm, and sync content with external LLMs through a copy-paste AI Prompt Builder. No accounts, no backend, no API keys — your decks live in **IndexedDB** on your device.
+[**Live Demo**](https://IT25100142.github.io/promptQuiz/) · [**Report Bug**](https://github.com/IT25100142/promptQuiz/issues) · [**Request Feature**](https://github.com/IT25100142/promptQuiz/issues)
 
-The interface has been refined with a **premium glassmorphism design system**: ambient mesh backgrounds, frosted navigation, fluid card transitions, and polished dark/light themes powered by **Tailwind CSS v4**.
+PromptQuiz is a free single-page React application that lets students create quiz decks from JSON or plain text, practice with rich question types, schedule reviews with the SM-2 algorithm, and sync content with external LLMs through a copy-paste AI Prompt Builder. No accounts, no subscriptions, no backend — your decks live in **IndexedDB** on your device.
+
+The interface features a **premium glassmorphism design system**: ambient mesh backgrounds, frosted navigation, fluid card transitions, and polished dark/light themes powered by **Tailwind CSS v4**.
+
+---
+
+## Screenshots & Demo
+
+> Drop your media into `docs/screenshots/` and `docs/assets/`, then replace the placeholders below.
+
+### Live walkthrough
+
+<!-- Option A: embed a GIF -->
+<!-- ![PromptQuiz demo](docs/assets/demo.gif) -->
+
+<!-- Option B: link to a screen recording -->
+**[Add screen recording here](docs/assets/demo.mp4)** — _Replace with your `.mp4`, `.webm`, or YouTube/Loom link_
+
+### Library dashboard
+
+<!-- ![Library dashboard — light mode](docs/screenshots/decks-light.png) -->
+_Placeholder: `docs/screenshots/decks-light.png`_
+
+### Quiz session
+
+<!-- ![Active quiz with glass card UI](docs/screenshots/quiz-session.png) -->
+_Placeholder: `docs/screenshots/quiz-session.png`_
+
+### Dark mode
+
+<!-- ![Dark mode library view](docs/screenshots/decks-dark.png) -->
+_Placeholder: `docs/screenshots/decks-dark.png`_
 
 ---
 
 ## Why PromptQuiz?
 
 | Principle | What it means |
-|-----------|----------------|
+| :--- | :--- |
+| **Free for students** | No paywalls or subscriptions — study without a credit card |
 | **Offline-first** | Full functionality without a network connection after first load |
 | **Privacy-first** | No server uploads; study data never leaves your browser |
 | **Developer-friendly** | Clean React architecture, Zod validation, Vitest tests, documented in [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) |
@@ -23,41 +60,14 @@ The interface has been refined with a **premium glassmorphism design system**: a
 
 ## Core Features
 
-### Active recall sessions
-Run interactive quiz sessions with five question types (multiple choice, true/false, fill-in-the-blank, cloze, short answer). Navigate forward and backward, shuffle cards, track score and progress, review mistakes, and use **Zen mode** for distraction-free study.
-
-### IndexedDB persistence (`PromptQuizDB`)
-Decks, quizzes, questions, and review schedules are stored locally in a relational-like IndexedDB schema. Export and import your entire library as validated JSON snapshots.
-
-### SM-2 spaced repetition
-Rate recall quality (1–5) after each answer. The SuperMemo-2 engine in `src/shared/services/sm2.js` calculates optimal review intervals and stores schedules in the `reviewSchedule` object store.
-
-### AI Prompt Builder
-Open the in-app modal, configure topic and question types, copy a formatted prompt to your preferred LLM, then paste the response back. The parser validates output and inserts questions into your deck — no API integration required.
-
-### Library backup and portability
-Export your full library from `/decks` or the Command HUD (`⌘K` → `>export`). Import restores decks with strict Zod schema validation.
-
-### Command HUD
-Press `Ctrl+K` / `⌘K` to search decks, jump to quizzes, toggle theme, export data, or enable focus mode.
-
----
-
-## Design & UI
-
-PromptQuiz uses a cohesive **Tailwind CSS v4** design system defined in `src/index.css`:
-
-| Element | Implementation |
-|---------|----------------|
-| **Typography** | DM Sans (UI) + Instrument Serif (question headings) |
-| **Glassmorphism** | `premium-glass`, `glass-nav`, `toast-glass` utilities with backdrop blur and inset highlights |
-| **Ambient depth** | `bg-premium-mesh` gradients + animated `ambient-orb` background elements |
-| **Motion** | `fade-in`, `scale-in`, `slide-in-up`, card flip transitions, glow-pulse indicators |
-| **Interactive polish** | `quiz-option` hover slides, gradient `btn-primary` CTAs, pill badges, focus rings |
-| **Dark mode** | Class-based `.dark` toggle with full light/dark token parity |
-| **Accessibility** | `prefers-reduced-motion` support |
-
-Key UI surfaces: floating glass navigation (`Layout.jsx`), 3D flip quiz cards with technical grid overlay (`QuizView.jsx`), and glass toast notifications.
+| Feature | Description |
+| :--- | :--- |
+| **Active recall sessions** | Five question types, navigation, shuffle, Zen mode, mistake review |
+| **IndexedDB persistence** | Decks → Quizzes → Questions hierarchy in `PromptQuizDB` |
+| **SM-2 spaced repetition** | Rate recall quality (1–5); smart review scheduling per card |
+| **AI Prompt Builder** | Copy prompts to external LLMs; paste responses back — no API keys |
+| **Library backup** | Export/import full library as validated JSON snapshots |
+| **Command HUD** | `Ctrl+K` / `⌘K` — search decks, export, toggle theme, focus mode |
 
 ---
 
@@ -66,7 +76,7 @@ Key UI surfaces: floating glass navigation (`Layout.jsx`), 3D flip quiz cards wi
 **Requirements:** Node.js 20+, npm 9+
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/IT25100142/promptQuiz.git
 cd promptQuiz
 npm install
 npm run dev
@@ -84,14 +94,14 @@ npm install --legacy-peer-deps
 
 ```bash
 npm run build
-npm run preview   # serve /dist at http://localhost:4173/promptQuiz/
+npm run preview   # http://localhost:4173/promptQuiz/
 ```
 
 ---
 
 ## Deployment
 
-PromptQuiz is configured for **GitHub Pages** at `https://<username>.github.io/promptQuiz/`.
+PromptQuiz deploys automatically to **GitHub Pages** at **[https://IT25100142.github.io/promptQuiz/](https://IT25100142.github.io/promptQuiz/)**.
 
 ### Automatic deploys
 
@@ -99,32 +109,31 @@ Pushes to the **`main`** branch trigger [`.github/workflows/deploy.yml`](.github
 
 1. Installs dependencies with `npm ci`
 2. Runs `npm run build`
-3. Deploys the `dist` folder to GitHub Pages via `actions/deploy-pages@v4`
+3. Deploys the `dist` folder via `actions/deploy-pages@v4`
 
 ### One-time GitHub setup
 
-1. Push this repository to GitHub (repository name: **`promptQuiz`**).
+1. Fork or push this repository to GitHub (repository name: **`promptQuiz`**).
 2. Go to **Settings → Pages → Build and deployment**.
-3. Set **Source** to **GitHub Actions** (not “Deploy from a branch”).
-4. After the first successful workflow run, update the Live Demo link at the top of this README with your GitHub username.
+3. Set **Source** to **GitHub Actions**.
 
-### SPA routing on GitHub Pages
+### SPA routing
 
-- `vite.config.js` sets `base: '/promptQuiz/'`.
-- `BrowserRouter` uses `import.meta.env.BASE_URL` as `basename`.
-- `public/404.html` plus the restore script in `index.html` handle direct links to routes like `/decks` and `/quiz`.
+Direct links to `/decks`, `/quiz`, and other routes work on GitHub Pages via:
 
-If you rename the repository, update the `base` path in `vite.config.js` and `pathSegmentsToKeep` in `public/404.html` to match.
+- `base: '/promptQuiz/'` in `vite.config.js`
+- `basename={import.meta.env.BASE_URL}` on `BrowserRouter`
+- `public/404.html` + restore script in `index.html`
 
 ---
 
 ## Routes
 
 | Path | Page | Purpose |
-|------|------|---------|
+| :--- | :--- | :--- |
 | `/` | → `/decks` | Redirect to library |
-| `/decks` | DecksPage | Library dashboard, import/export, study launch |
-| `/create-deck` | CreateDeckPage | Paste or import questions into a new deck |
+| `/decks` | DecksPage | Library dashboard, import/export |
+| `/create-deck` | CreateDeckPage | Create or import a deck |
 | `/quiz` | QuizPage | Active recall session |
 | `/results` | ResultsPage | Score summary and restart |
 
@@ -134,7 +143,7 @@ If you rename the repository, update the `base` path in `vite.config.js` and `pa
 
 1. **Create a deck** — Go to `/create-deck`, paste JSON or AI block text, submit.
 2. **Study** — From `/decks`, click **Study** on a quiz.
-3. **Answer and rate** — Complete questions; rate recall quality for SM-2 scheduling.
+3. **Answer and rate** — Complete questions; rate recall for SM-2 scheduling.
 4. **Review** — View results at `/results`; restart or review mistakes.
 5. **Backup** — Export library JSON from `/decks` regularly.
 
@@ -149,10 +158,23 @@ If you rename the repository, update the `base` path in `vite.config.js` and `pa
 
 ---
 
+## Design & UI
+
+| Element | Implementation |
+| :--- | :--- |
+| **Typography** | DM Sans (UI) + Instrument Serif (headings) |
+| **Glassmorphism** | `premium-glass`, `glass-nav`, `toast-glass` utilities |
+| **Motion** | Card flip, fade-in, scale-in, glow-pulse indicators |
+| **Dark mode** | Class-based `.dark` toggle with full token parity |
+
+Key surfaces: floating glass navigation (`Layout.jsx`), 3D flip quiz cards (`QuizView.jsx`), Command HUD.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
+| :--- | :--- |
 | UI | React 19, React Router 7 |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Build | Vite 8 |
@@ -161,7 +183,7 @@ If you rename the repository, update the `base` path in `vite.config.js` and `pa
 | Testing | Vitest 4, Testing Library, fake-indexeddb |
 | Linting | ESLint 9 (flat config), jsx-a11y |
 
-**Not included:** Backend server, REST/GraphQL API, authentication, environment variables, or third-party LLM API calls.
+**Not included:** Backend server, REST/GraphQL API, authentication, or third-party LLM API calls.
 
 ---
 
@@ -185,25 +207,7 @@ flowchart TD
     QuizUI --> SM2[SM-2 Engine → reviewSchedule]
 ```
 
-### Three-slice context
-
-`QuizProvider` splits state to minimize re-renders:
-
-- **`useQuizSession`** — Active quiz, answers, navigation, shuffle, SM-2 ratings
-- **`useQuizLibrary`** — Deck CRUD, JSON input, IndexedDB sync
-- **`useQuizShell`** — Toasts, AI modal, parse messages
-
-Reducer and hooks live in `src/features/quiz/hooks/`. Persistence is centralized in `src/shared/services/indexedDB.js`.
-
-### IndexedDB schema (v2)
-
-```
-decks → quizzes → questions
-                    ↓
-              reviewSchedule (SM-2 metadata per question)
-```
-
-For full schema fields, API surface, and contributor guidelines, see [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
+For full schema, hooks, and contributor guidelines, see [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md).
 
 ---
 
@@ -212,8 +216,6 @@ For full schema fields, API surface, and contributor guidelines, see [`PROJECT_C
 **Types:** `multiple-choice`, `true-false`, `fill-blank`, `cloze`, `short-answer`
 
 **Import formats:** JSON array, AI block text (recommended), Markdown headers, CSV-style lists.
-
-Example AI block:
 
 ```text
 [T/F] React 19 works with Vite 8.
@@ -228,14 +230,14 @@ B. Cascading Style Sheets
 *Cascading Style Sheets
 ```
 
-JSON and full schema definitions: `src/shared/schemas/quizQuestions.js`
+Schema definitions: [`src/shared/schemas/quizQuestions.js`](src/shared/schemas/quizQuestions.js)
 
 ---
 
 ## NPM Scripts
 
 | Command | Description |
-|---------|-------------|
+| :--- | :--- |
 | `npm run dev` | Dev server with HMR (port **5173**) |
 | `npm run build` | Production build → `/dist` |
 | `npm run preview` | Preview production build |
@@ -252,7 +254,7 @@ npm test
 npm run lint
 ```
 
-Tests use **Vitest + jsdom + fake-indexeddb**. Ten test files cover schemas, parsers, IndexedDB, scoring, context, and page flows.
+Ten test files cover schemas, parsers, IndexedDB, scoring, context, and page flows.
 
 > IndexedDB warnings in some route tests are expected in Node/jsdom and do not fail the suite.
 
@@ -262,19 +264,18 @@ Tests use **Vitest + jsdom + fake-indexeddb**. Ten test files cover schemas, par
 
 ```text
 promptQuiz/
+├── .github/workflows/deploy.yml
 ├── README.md
-├── PROJECT_CONTEXT.md      # Deep technical reference for contributors & AI agents
+├── PROJECT_CONTEXT.md
+├── public/404.html           # GitHub Pages SPA fallback
 ├── src/
-│   ├── App.jsx             # Routes
-│   ├── index.css           # Tailwind v4 design system & utilities
-│   ├── components/         # Layout, QuizView, CommandHUD, modals
+│   ├── App.jsx
+│   ├── index.css
+│   ├── components/         # Layout, QuizView, CommandHUD
 │   ├── contexts/           # QuizContext (three-slice provider)
-│   ├── pages/              # Route pages
-│   ├── features/           # ai, decks, quiz, ui, questions modules
-│   └── shared/
-│       ├── schemas/        # Zod validation
-│       ├── services/       # indexedDB.js, sm2.js
-│       └── utils/          # parsers, helpers
+│   ├── pages/
+│   ├── features/           # ai, quiz, ui modules
+│   └── shared/             # schemas, services, utils
 └── vitest.config.js
 ```
 
@@ -283,11 +284,11 @@ promptQuiz/
 ## Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
+| :--- | :--- |
 | Blank `/quiz` page | Start a quiz from `/decks` first |
-| Parse errors | Ensure JSON is an array; text blocks separated by one blank line |
+| Parse errors | JSON must be an array; text blocks need one blank line between questions |
 | Data lost on browser clear | Export library JSON regularly from `/decks` |
-| 404 on production refresh | Configure SPA fallback to `/index.html` on your host |
+| 404 on refresh (GitHub Pages) | Ensure Pages source is **GitHub Actions** and workflow succeeded |
 | Missing styles | Confirm `@tailwindcss/vite` is in `vite.config.js` |
 
 ---
@@ -296,14 +297,24 @@ promptQuiz/
 
 1. Run `npm run lint` and `npm test` before submitting changes.
 2. Co-locate tests as `*.test.js` / `*.test.jsx` beside source files.
-3. New question types require updates to Zod schemas **and** both parsers (`parsers.js`, `helpers.js`).
-4. Read [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) before modifying state, IndexedDB, or import logic.
+3. New question types require Zod schema updates and parser changes in `parsers.js`.
+4. Read [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) before modifying state or IndexedDB.
+
+Contributions, issues, and feature requests are welcome.
 
 ---
 
 ## Author
 
-**Sankalpa KMCP** — First-year IT undergraduate at SLIIT, building practical, privacy-first tools at the intersection of web development and AI-assisted learning.
+**Sankalpa KMCP**
+
+First-year IT undergraduate at **SLIIT**, building practical, privacy-first tools at the intersection of web development and AI-assisted learning.
+
+[![GitHub](https://img.shields.io/badge/GitHub-IT25100142-181717?logo=github)](https://github.com/IT25100142)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Sankalpa_KMCP-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba/)
+
+- GitHub: [github.com/IT25100142](https://github.com/IT25100142)
+- LinkedIn: [linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba](https://www.linkedin.com/in/sankalpa-k-m-c-p-2a900b3ba/)
 
 ---
 
