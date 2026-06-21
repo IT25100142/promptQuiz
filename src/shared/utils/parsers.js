@@ -61,8 +61,12 @@ function parseTrueFalseBlock(lines) {
 /**
  * Parses fill in the blank questions from block lines.
  */
+function normalizeFibUnderscores(questionText) {
+  return questionText.replace(/_{2,}/g, '___')
+}
+
 function parseFillBlankBlock(lines) {
-  const firstLine = lines[0].replace(/^\[FIB\]\s*/i, '').trim();
+  const firstLine = normalizeFibUnderscores(lines[0].replace(/^\[FIB\]\s*/i, '').trim());
   let answers = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -365,5 +369,48 @@ export function parseRawInput(rawText) {
     case 'ai-block':
     default:
       return parseAIBlockFormat(sanitized);
+  }
+}
+
+/**
+ * Safely parse quiz JSON or plain-text input with structured error results.
+ * JSON arrays are parsed directly; text formats delegate to parseRawInput.
+ * @param {string} text
+ * @returns {{ ok: true, value: Array<Object> } | { ok: false, error: string }}
+ */
+export function safeParseQuizJson(text) {
+  if (!text || typeof text !== 'string') {
+    return { ok: false, error: 'No input provided. Please paste your quiz questions.' }
+  }
+
+  const trimmedText = text.trim()
+  if (!trimmedText) {
+    return { ok: false, error: 'No input provided. Please paste your quiz questions.' }
+  }
+
+  try {
+    const parsed = JSON.parse(trimmedText)
+    if (Array.isArray(parsed)) {
+      return { ok: true, value: parsed }
+    }
+    return { ok: false, error: 'Input must be an array of questions' }
+  } catch {
+    // Not valid JSON — fall through to text parsing
+  }
+
+  try {
+    const questions = parseRawInput(trimmedText)
+    if (questions.length > 0) {
+      return { ok: true, value: questions }
+    }
+    return {
+      ok: false,
+      error: 'Could not parse input. Please check your format and see examples in the sidebar.',
+    }
+  } catch {
+    return {
+      ok: false,
+      error: 'Failed to parse text format. Please check your question formatting and see examples in the sidebar.',
+    }
   }
 }
