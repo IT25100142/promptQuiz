@@ -1,311 +1,279 @@
-import { useState, useMemo, useEffect } from 'react'
-import { 
-  getAllDecks, 
-  getDeckById, 
-  saveDeck, 
-  saveLastUsedDeckId,
-  getLastUsedDeckId,
-  clearLastUsedDeckId,
-  saveReviewSchedule,
-  getReviewSchedule,
-  updateReviewSchedule,
-  getDueReviews,
-  deleteReviewSchedule
-} from '../utils/indexedDB.js'
-import { 
-  SAMPLE_QUIZ,
-  safeParseQuizJson, 
-  parseCSVFormat, 
-  parseMarkdownFormat, 
-  parseTextFormat 
-} from '../utils/helpers.js'
+import { useMemo, useReducer, useCallback } from 'react'
+import { safeParseQuizJson } from '../../../shared/utils/helpers.js'
+import {
+  countAnswered,
+  computeScore,
+  progressPercent,
+} from '../utils/quizDerivedMetrics.js'
+import { useQuizDeckHierarchy } from './useQuizDeckHierarchy.js'
+import { useQuizDeckSync } from './useQuizDeckSync.js'
+import { useQuizJsonInput } from './useQuizJsonInput.js'
+import { useQuizReviewActions } from './useQuizReviewActions.js'
+import { useQuizSessionActions } from './useQuizSessionActions.js'
+import { initialState, quizReducer } from './quizReducer.js'
 
 export function useQuiz() {
-  // Core quiz state
-  const [view, setView] = useState('input')
-  const [rawJson, setRawJson] = useState('')
-  const [inputError, setInputError] = useState('')
-  const [quiz, setQuiz] = useState([])
-  const [answers, setAnswers] = useState([])
-  const [idx, setIdx] = useState(0)
-  const [currentDeckId, setCurrentDeckId] = useState(null)
-  const [savedDecks, setSavedDecks] = useState([])
+  const [state, dispatch] = useReducer(quizReducer, initialState)
 
-  // Review mode state
-  const [isReviewMode, setIsReviewMode] = useState(false)
-  const [incorrectQuestions, setIncorrectQuestions] = useState([])
-  const [isSpacedRepetition, setIsSpacedRepetition] = useState(false)
-  const [showReviewButtons, setShowReviewButtons] = useState(false)
-  const [reviewSchedule, setReviewSchedule] = useState([])
-  
-  const current = quiz[idx]
-  const total = quiz.length
-  const answeredCount = useMemo(() => {
-    return answers.filter(answer => answer !== null).length
-  }, [answers])
-  const score = useMemo(() => {
-    return answers.reduce((total, answer, idx) => {
-      if (answer === null) return total
-      
-      const question = quiz[idx]
-      if (!question) return total
-      
-      const isCorrect = question.answerIndex === answer || 
-                     (question.type === 'fill-blank' && answer === question.answer) ||
-                     (question.type === 'cloze' && answer === question.answer)
-      
-      return total + (isCorrect ? 1 : 0)
-    }, 0)
-  }, [quiz, answers])
-  const progress = useMemo(() => total > 0 ? (answeredCount / total) * 100 : 0, [answeredCount, total])
-  const preview = useMemo(() => {
-    return safeParseQuizJson(rawJson)
-  }, [rawJson])
-
-  // Load saved decks on mount
-  useEffect(() => {
-    const loadDecks = async () => {
-      const decks = await getAllDecks()
-      setSavedDecks(decks)
-      
-      // Load last used deck
-      const lastUsedId = await getLastUsedDeckId()
-      if (lastUsedId) {
-        const deck = await getDeckById(lastUsedId)
-        if (deck) {
-          setCurrentDeckId(lastUsedId)
-          setQuiz(deck.questions)
-          setAnswers(Array(deck.questions.length).fill(null))
-          setIdx(0)
-        }
-      }
-    }
-    
-    loadDecks()
-  }, [])
-
-  // Actions
-  const toggleSpacedRepetition = () => {
-    setIsSpacedRepetition(!isSpacedRepetition)
-    setShowReviewButtons(!isSpacedRepetition)
-  }
-
-  const loadSample = () => {
-    setRawJson(JSON.stringify(SAMPLE_QUIZ, null, 2))
-    setInputError('')
-  }
-
-  const formatJson = () => {
-    try {
-      const parsed = JSON.parse(rawJson)
-      setRawJson(JSON.stringify(parsed, null, 2))
-      setInputError('')
-    } catch (error) {
-      setInputError('Invalid JSON format')
-    }
-  }
-
-  const clearQuiz = () => {
-    setRawJson('')
-    setQuiz([])
-    setAnswers([])
-    setIdx(0)
-    setInputError('')
-    setCurrentDeckId(null)
-  }
-
-  const startQuiz = () => {
-    if (preview.ok) {
-      setQuiz(preview.value)
-      setAnswers(Array(preview.value.length).fill(null))
-      setIdx(0)
-      setView('quiz')
-      setInputError('')
-    } else {
-      setInputError(preview.error)
-    }
-  }
-
-  const choose = (answerIdx) => {
-    const newAnswers = [...answers]
-    newAnswers[idx] = answerIdx
-    setAnswers(newAnswers)
-  }
-
-  const goPrevious = () => {
-    if (idx > 0) {
-      setIdx(idx - 1)
-    }
-  }
-
-  const goNext = () => {
-    if (idx < quiz.length - 1) {
-      setIdx(idx + 1)
-    }
-  }
-
-  const isAnswered = () => {
-    return answers[idx] !== null
-  }
-
-  const restartSession = () => {
-    setIdx(0)
-    setAnswers(Array(quiz.length).fill(null))
-    setIsReviewMode(false)
-    setIncorrectQuestions([])
-  }
-
-  const startDailyReview = () => {
-    const dueReviews = getDueReviews()
-    if (dueReviews.length > 0) {
-      const questionsToReview = dueReviews.flatMap(review => review.questions)
-      setQuiz(questionsToReview)
-      setAnswers(Array(questionsToReview.length).fill(null))
-      setIdx(0)
-      setIsReviewMode(true)
-      setView('quiz')
-    }
-  }
-
-  const saveCurrentDeck = async (deckName) => {
-    if (!deckName.trim()) {
-      throw new Error('Deck name cannot be empty')
-    }
-
-    if (quiz.length === 0) {
-      throw new Error('No quiz data to save')
-    }
-
-    const deck = {
-      id: Date.now().toString(),
-      name: deckName,
-      questions: quiz,
-      date: new Date().toISOString(),
-      questionCount: quiz.length
-    }
-
-    await saveDeck(deck)
-    await saveLastUsedDeckId(deck.id)
-    setCurrentDeckId(deck.id)
-    setSavedDecks(prev => [...prev, deck])
-  }
-
-  const loadDeck = async (deckId) => {
-    const deck = await getDeckById(deckId)
-    if (deck) {
-      setCurrentDeckId(deckId)
-      setQuiz(deck.questions)
-      setAnswers(Array(deck.questions.length).fill(null))
-      setIdx(0)
-      setView('input')
-    }
-  }
-
-  const deleteDeck = async (deckId) => {
-    await deleteDeck(deckId)
-    setSavedDecks(prev => prev.filter(d => d.id !== deckId))
-    if (currentDeckId === deckId) {
-      setCurrentDeckId(null)
-      setQuiz([])
-      setAnswers([])
-      setIdx(0)
-    }
-  }
-
-  const editQuiz = () => {
-    setView('input')
-  }
-
-  const finishQuiz = () => {
-    const incorrect = []
-    
-    quiz.forEach((question, questionIdx) => {
-      const userAnswer = answers[questionIdx]
-      const isCorrect = question.answerIndex === userAnswer || 
-                         (question.type === 'fill-blank' && userAnswer === question.answer) ||
-                         (question.type === 'cloze' && userAnswer === question.answer)
-
-      if (!isCorrect && userAnswer !== null) {
-        incorrect.push(question)
-      }
-    })
-
-    setIsReviewMode(true)
-    setIncorrectQuestions(incorrect)
-    setView('results')
-  }
-
-  const startReviewMistakes = () => {
-    if (incorrectQuestions.length > 0) {
-      setQuiz(incorrectQuestions)
-      setAnswers(Array(incorrectQuestions.length).fill(null))
-      setIdx(0)
-      setIsReviewMode(true)
-      setView('quiz')
-    }
-  }
-
-  const parseMessage = ''
-  const showAIPromptBuilder = false
-
-  return {
-    // State
-    view,
-    rawJson,
-    inputError,
+  const {
     quiz,
     answers,
     idx,
-    current,
-    total,
-    answeredCount,
-    score,
-    progress,
-    preview,
+    rawJson,
+    textAnswers,
     currentDeckId,
+    appNotice,
+    parseMessage,
+    showAIPromptBuilder,
+    aiResponse,
+    inputError,
     savedDecks,
+    decksLoadStatus,
+    decksLoadError,
+    currentQuizId,
+    deckQuizzes,
+    selectedDeckForQuiz,
+    isCreatingDeck,
+    isCreatingQuiz,
     isReviewMode,
     incorrectQuestions,
     isSpacedRepetition,
     showReviewButtons,
     reviewSchedule,
-    parseMessage,
-    showAIPromptBuilder,
+    shuffleMode,
+    keepFirstQuestion,
+    originalQuiz,
+    showCardOverview,
+    showSuggestedAnswer,
+  } = state
 
-    // Actions
-    toggleSpacedRepetition,
-    loadSample,
-    formatJson,
-    clearQuiz,
-    startQuiz,
-    choose,
-    goPrevious,
-    goNext,
-    isAnswered,
-    restartSession,
-    startDailyReview,
-    saveCurrentDeck,
-    loadDeck,
-    deleteDeck,
-    editQuiz,
-    finishQuiz,
-    startReviewMistakes,
+  const setState = useCallback(
+    (payload) => dispatch({ type: 'SET_STATE', payload }),
+    [],
+  )
 
-    // Setters
-    setView,
-    setRawJson,
-    setInputError,
-    setQuiz,
-    setAnswers,
-    setIdx,
-    setCurrentDeckId,
-    setSavedDecks,
-    setIsReviewMode,
-    setIncorrectQuestions,
-    setIsSpacedRepetition,
-    setShowReviewButtons,
-    setReviewSchedule,
-    setParseMessage,
-    setShowAIPromptBuilder
-  }
+  const hierarchy = useQuizDeckHierarchy({ dispatch })
+
+  const current = quiz[idx]
+  const total = quiz.length
+  const answeredCount = useMemo(() => countAnswered(answers), [answers])
+  const score = useMemo(
+    () => computeScore(quiz, answers, textAnswers),
+    [quiz, answers, textAnswers],
+  )
+  const progress = useMemo(
+    () => progressPercent(answeredCount, total),
+    [answeredCount, total],
+  )
+  const parsedPreview = useMemo(() => safeParseQuizJson(rawJson), [rawJson])
+
+  const sessionActions = useQuizSessionActions({
+    dispatch,
+    quiz,
+    answers,
+    idx,
+    current,
+    total,
+    textAnswers,
+    showSuggestedAnswer,
+    shuffleMode,
+    keepFirstQuestion,
+    originalQuiz,
+  })
+
+  const jsonInput = useQuizJsonInput({
+    dispatch,
+    rawJson,
+    preview: parsedPreview,
+    clearSessionTextState: sessionActions.clearSessionTextState,
+  })
+
+  const review = useQuizReviewActions({
+    dispatch,
+    isSpacedRepetition,
+    incorrectQuestions,
+    clearSessionTextState: sessionActions.clearSessionTextState,
+  })
+
+  const deckSync = useQuizDeckSync({
+    dispatch,
+    quiz,
+    currentDeckId,
+    clearSessionTextState: sessionActions.clearSessionTextState,
+    hierarchy,
+    selectedDeckForQuiz,
+  })
+
+  const shell = useMemo(
+    () => ({
+      appNotice,
+      setAppNotice: (appNotice) => setState({ appNotice }),
+      parseMessage,
+      setParseMessage: (parseMessage) => setState({ parseMessage }),
+      showAIPromptBuilder,
+      setShowAIPromptBuilder: (showAIPromptBuilder) =>
+        setState({ showAIPromptBuilder }),
+      aiResponse,
+      setAiResponse: (aiResponse) => setState({ aiResponse }),
+    }),
+    [
+      appNotice,
+      parseMessage,
+      showAIPromptBuilder,
+      aiResponse,
+      setState,
+    ],
+  )
+
+  const library = useMemo(
+    () => ({
+      rawJson,
+      inputError,
+      preview: parsedPreview,
+      currentDeckId,
+      savedDecks,
+      decksLoadStatus,
+      decksLoadError,
+      currentQuizId,
+      deckQuizzes,
+      selectedDeckForQuiz,
+      isCreatingDeck,
+      isCreatingQuiz,
+      loadSample: jsonInput.loadSample,
+      formatJson: jsonInput.formatJson,
+      clearQuiz: jsonInput.clearQuiz,
+      startQuiz: jsonInput.startQuiz,
+      prepareForEdit: jsonInput.prepareForEdit,
+      saveCurrentDeck: deckSync.saveCurrentDeck,
+      loadDeck: deckSync.loadDeck,
+      deleteDeck: deckSync.deleteDeckById,
+      setRawJson: (rawJson) => setState({ rawJson }),
+      setInputError: (inputError) => setState({ inputError }),
+      setCurrentDeckId: (currentDeckId) => setState({ currentDeckId }),
+      setSavedDecks: (savedDecks) => setState({ savedDecks }),
+      ...hierarchy,
+    }),
+    [
+      rawJson,
+      inputError,
+      parsedPreview,
+      currentDeckId,
+      savedDecks,
+      decksLoadStatus,
+      decksLoadError,
+      currentQuizId,
+      deckQuizzes,
+      selectedDeckForQuiz,
+      isCreatingDeck,
+      isCreatingQuiz,
+      jsonInput.loadSample,
+      jsonInput.formatJson,
+      jsonInput.clearQuiz,
+      jsonInput.startQuiz,
+      jsonInput.prepareForEdit,
+      deckSync.saveCurrentDeck,
+      deckSync.loadDeck,
+      deckSync.deleteDeckById,
+      hierarchy,
+      setState,
+    ],
+  )
+
+  const session = useMemo(
+    () => ({
+      quiz,
+      answers,
+      idx,
+      current,
+      total,
+      answeredCount,
+      score,
+      progress,
+      isReviewMode,
+      incorrectQuestions,
+      isSpacedRepetition,
+      showReviewButtons,
+      reviewSchedule,
+      shuffleMode,
+      keepFirstQuestion,
+      originalQuiz,
+      showCardOverview,
+      textAnswers,
+      showSuggestedAnswer,
+      toggleSpacedRepetition: review.toggleSpacedRepetition,
+      choose: sessionActions.choose,
+      completeQuizSession: sessionActions.completeQuizSession,
+      restartSession: sessionActions.restartSession,
+      startDailyReview: review.startDailyReview,
+      startReviewMistakes: review.startReviewMistakes,
+      toggleShuffleMode: sessionActions.toggleShuffleMode,
+      toggleKeepFirstQuestion: sessionActions.toggleKeepFirstQuestion,
+      jumpToQuestion: sessionActions.jumpToQuestion,
+      handleTextAnswer: sessionActions.handleTextAnswer,
+      submitTextAnswer: sessionActions.submitTextAnswer,
+      toggleSuggestedAnswer: sessionActions.toggleSuggestedAnswer,
+      handleSelfAssessment: sessionActions.handleSelfAssessment,
+      isAnswered: sessionActions.isAnswered,
+      goPrevious: sessionActions.goPrevious,
+      goNext: sessionActions.goNext,
+      resetTextAnswers: sessionActions.resetTextAnswers,
+      setQuiz: (quiz) => setState({ quiz }),
+      setAnswers: (answers) => setState({ answers }),
+      setIdx: (idx) => setState({ idx }),
+      setIsReviewMode: (isReviewMode) => setState({ isReviewMode }),
+      setIncorrectQuestions: (incorrectQuestions) =>
+        setState({ incorrectQuestions }),
+      setIsSpacedRepetition: (isSpacedRepetition) =>
+        setState({ isSpacedRepetition }),
+      setShowReviewButtons: (showReviewButtons) =>
+        setState({ showReviewButtons }),
+      setReviewSchedule: (reviewSchedule) => setState({ reviewSchedule }),
+      setShuffleMode: (shuffleMode) => setState({ shuffleMode }),
+      setKeepFirstQuestion: (keepFirstQuestion) =>
+        setState({ keepFirstQuestion }),
+      setOriginalQuiz: (originalQuiz) => setState({ originalQuiz }),
+      setShowCardOverview: (showCardOverview) => setState({ showCardOverview }),
+    }),
+    [
+      quiz,
+      answers,
+      idx,
+      current,
+      total,
+      answeredCount,
+      score,
+      progress,
+      isReviewMode,
+      incorrectQuestions,
+      isSpacedRepetition,
+      showReviewButtons,
+      reviewSchedule,
+      shuffleMode,
+      keepFirstQuestion,
+      originalQuiz,
+      showCardOverview,
+      textAnswers,
+      showSuggestedAnswer,
+      review.toggleSpacedRepetition,
+      sessionActions.choose,
+      sessionActions.completeQuizSession,
+      sessionActions.restartSession,
+      review.startDailyReview,
+      review.startReviewMistakes,
+      sessionActions.toggleShuffleMode,
+      sessionActions.toggleKeepFirstQuestion,
+      sessionActions.jumpToQuestion,
+      sessionActions.handleTextAnswer,
+      sessionActions.submitTextAnswer,
+      sessionActions.toggleSuggestedAnswer,
+      sessionActions.handleSelfAssessment,
+      sessionActions.isAnswered,
+      sessionActions.goPrevious,
+      sessionActions.goNext,
+      sessionActions.resetTextAnswers,
+      setState,
+    ],
+  )
+
+  return { session, library, shell }
 }

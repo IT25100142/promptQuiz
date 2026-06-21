@@ -1,19 +1,26 @@
-export default function QuizProgress({ 
-  idx, 
-  total, 
-  answeredCount, 
-  score, 
-  isReviewMode, 
-  incorrectQuestions 
+export default function QuizProgress({
+  current,
+  total,
+  answeredCount,
+  score,
+  isReviewMode,
+  incorrectQuestions,
 }) {
+  const progress = total > 0 ? (answeredCount / total) * 100 : 0
+
   return (
-    <div>
-      <div className="text-sm font-semibold text-teal-700">
-        {isReviewMode ? 'Reviewing ' : 'Question '}{idx + 1} of {total}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div className="text-sm font-semibold text-teal-700 dark:text-teal-400">
+          {isReviewMode ? 'Reviewing ' : 'Question '}{current + 1} of {total}
+        </div>
+        <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {answeredCount} answered | Score {score}
+          {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
+        </div>
       </div>
-      <div className="mt-1 text-sm text-slate-600">
-        {answeredCount} answered | Score {score}
-        {isReviewMode && ` | Mistakes: ${incorrectQuestions.length}`}
+      <div className="rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200">
+        {Math.round(progress)}% through
       </div>
     </div>
   )

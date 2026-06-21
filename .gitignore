@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Markdown files (allow project docs)
+*.md
+!README.md
+!PROJECT_CONTEXT.md
+!LINKEDIN_POST.md
+
+# Batch files
+start.bat
