@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuizLibrary, useQuizSession, useQuizShell } from '../contexts/QuizContext.jsx';
+import CreateFolderModal from '../components/CreateFolderModal.jsx';
+import CreateQuizModal from '../components/CreateQuizModal.jsx';
+import AddQuestionsModal from '../components/AddQuestionsModal.jsx';
+import DeckQuizList from '../components/DeckQuizList.jsx';
 import {
   exportLibrarySnapshot,
   importLibrarySnapshot,
@@ -9,7 +13,6 @@ import {
   getQuestionsByQuizId,
   getQuestionsCountByQuizId,
   deleteDeck,
-  createQuiz,
   getRecentReviewTimestamps,
   getReviewStatsByDeckId
 } from '../shared/services/indexedDB.js';
@@ -26,9 +29,9 @@ export default function DecksPage() {
   const [reviewStatsMap, setReviewStatsMap] = useState({});
   const [deckLoading, setDeckLoading] = useState(false);
 
-  // States for adding a new quiz inline
-  const [activeDeckForNewQuiz, setActiveDeckForNewQuiz] = useState(null);
-  const [newQuizName, setNewQuizName] = useState('');
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [createQuizDeckId, setCreateQuizDeckId] = useState(null);
+  const [addQuestionsTarget, setAddQuestionsTarget] = useState(null);
 
   // Fetch quizzes for each deck
   const fetchQuizzes = async (deckId) => {
@@ -140,25 +143,62 @@ export default function DecksPage() {
     }
   };
 
-  const handleCreateQuiz = async (deckId) => {
-    if (!newQuizName.trim()) {
-      shell.showToast('Please enter a quiz name', 'error');
+  const handleDeleteQuiz = async (deckId, quizId, quizName, questionCount) => {
+    const cardLabel = questionCount === 1 ? 'question' : 'questions';
+    const message = questionCount > 0
+      ? `Delete "${quizName}" and all ${questionCount} ${cardLabel}? This cannot be undone.`
+      : `Delete "${quizName}"? This cannot be undone.`;
+
+    if (!window.confirm(message)) {
       return;
     }
+
     setDeckLoading(true);
     try {
-      await createQuiz(deckId, newQuizName.trim(), 'Quiz description');
-      setNewQuizName('');
-      setActiveDeckForNewQuiz(null);
-      shell.showToast('Quiz created successfully', 'success');
+      await library.deleteQuizById(quizId);
+      setQuestionsCountMap(prev => {
+        const next = { ...prev };
+        delete next[quizId];
+        return next;
+      });
       await fetchQuizzes(deckId);
+      shell.showToast('Quiz deleted successfully', 'success');
     } catch (err) {
       console.error(err);
-      shell.showToast('Failed to create quiz.', 'error');
+      shell.showToast('Failed to delete quiz.', 'error');
     } finally {
       setDeckLoading(false);
     }
   };
+
+  const handleQuizCreated = async () => {
+    if (createQuizDeckId) {
+      await fetchQuizzes(createQuizDeckId);
+    }
+  };
+
+  const handleQuestionsAppended = async (deckId) => {
+    await fetchQuizzes(deckId);
+  };
+
+  const openAddQuestionsModal = (deckId, quizId, quizName) => {
+    setAddQuestionsTarget({ deckId, quizId, quizName });
+  };
+
+  const renderAddQuizButton = (deckId, compact = false) => (
+    <button
+      type="button"
+      disabled={deckLoading}
+      onClick={() => setCreateQuizDeckId(deckId)}
+      className={
+        compact
+          ? 'btn-ghost rounded-lg px-2.5 py-1 text-[9px] sm:text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50'
+          : 'btn-ghost w-full justify-start rounded-xl px-3 py-2 text-[10px] sm:text-xs font-mono text-indigo-600/80 dark:text-indigo-400/80 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50 flex items-center gap-2'
+      }
+    >
+      <span className={compact ? undefined : 'text-base leading-none'}>+</span> Add Quiz
+    </button>
+  );
 
   const handleExportLibrary = async () => {
     setDeckLoading(true);
@@ -266,9 +306,20 @@ export default function DecksPage() {
           <button
             type="button"
             onClick={() => navigate('/create-deck')}
-            className="inline-flex items-center justify-center rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-white dark:text-slate-950 shadow-md transition-all cursor-pointer active:scale-[0.98]"
+            disabled={deckLoading}
+            aria-label="Bulk import questions"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-900/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-900/5 dark:hover:bg-white/5 disabled:opacity-50 transition-all cursor-pointer active:scale-[0.98]"
           >
-            New Deck
+            Bulk Import
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateFolderModal(true)}
+            disabled={deckLoading}
+            aria-label="Create new folder"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-5 py-2.5 text-xs font-mono tracking-wider uppercase text-white dark:text-slate-950 shadow-md transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+          >
+            New Folder
           </button>
         </div>
       </div>
@@ -296,7 +347,7 @@ export default function DecksPage() {
                     <button
                       type="button"
                       onClick={() => handleDeleteDeck(heroDeck.id)}
-                      className="text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors text-xs font-semibold p-1"
+                      className="btn-danger-ghost rounded-lg px-2.5 py-1 text-[10px] sm:text-xs"
                     >
                       Delete
                     </button>
@@ -326,73 +377,23 @@ export default function DecksPage() {
                 </div>
 
                 {/* Quizzes List */}
-                <div className="border-t border-slate-900/5 dark:border-white/5 pt-6">
-                  <h3 className="text-[10px] font-mono font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Quizzes</h3>
-                  {heroQuizzes.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2">
-                      {heroQuizzes.map(quiz => {
-                        const count = questionsCountMap[quiz.id] || 0;
-                        return (
-                          <button
-                            key={quiz.id}
-                            type="button"
-                            onClick={() => handleStudyQuiz(quiz.id, heroDeck.id)}
-                            className="w-full flex items-center justify-between text-left px-4 py-3 rounded-lg border-l-2 border-l-transparent hover:border-l-indigo-500 bg-slate-50/30 dark:bg-slate-950/30 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-all duration-200 group active:scale-[0.98]"
-                          >
-                            <span className="text-[11px] font-mono tracking-wide text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate pr-2">
-                              {quiz.name}
-                            </span>
-                            <span className="shrink-0 text-slate-400 dark:text-slate-500 font-mono text-[9px] uppercase">
-                              {count} {count === 1 ? 'card' : 'cards'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs italic text-slate-400 dark:text-slate-500 font-mono">No quizzes in this deck.</p>
-                  )}
-
-                  {/* Inline Quiz Creation for Hero */}
+                <div className="border-t border-slate-900/5 dark:border-white/5 pt-6 animate-fade-in">
+                  <h3 className="label-premium mb-4">Quizzes</h3>
+                  <DeckQuizList
+                    quizzes={heroQuizzes}
+                    questionsCountMap={questionsCountMap}
+                    variant="hero"
+                    disabled={deckLoading}
+                    onStudy={(quizId) => handleStudyQuiz(quizId, heroDeck.id)}
+                    onAddQuestions={(quizId, quizName) =>
+                      openAddQuestionsModal(heroDeck.id, quizId, quizName)
+                    }
+                    onDelete={(quizId, quizName, count) =>
+                      handleDeleteQuiz(heroDeck.id, quizId, quizName, count)
+                    }
+                  />
                   <div className="mt-4">
-                    {activeDeckForNewQuiz === heroDeck.id ? (
-                      <div className="flex flex-col gap-2">
-                        <input
-                          type="text"
-                          placeholder="Quiz name"
-                          value={newQuizName}
-                          onChange={(e) => setNewQuizName(e.target.value)}
-                          className="w-full px-3 py-1.5 text-[10px] uppercase rounded-none border border-slate-200 dark:border-slate-800 bg-transparent focus:outline-none focus:border-indigo-500 text-slate-900 dark:text-slate-100 font-mono"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveDeckForNewQuiz(null);
-                              setNewQuizName('');
-                            }}
-                            className="px-4 py-2 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-[0.98] transition uppercase"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCreateQuiz(heroDeck.id)}
-                            className="px-4 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold uppercase transition hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98]"
-                          >
-                            Create
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveDeckForNewQuiz(heroDeck.id)}
-                        className="w-full text-left text-[9px] font-mono font-bold text-indigo-600/70 dark:text-indigo-400/70 hover:text-indigo-600 py-1 uppercase tracking-widest transition-colors flex items-center gap-2"
-                      >
-                        <span className="text-lg leading-none">+</span> Add quiz
-                      </button>
-                    )}
+                    {renderAddQuizButton(heroDeck.id)}
                   </div>
                 </div>
               </div>
@@ -456,101 +457,49 @@ export default function DecksPage() {
                 const numberPrefix = String(idx + 2).padStart(2, '0');
                 const quizzes = quizzesMap[deck.id] || [];
                 return (
-                  <div 
+                  <div
                     key={deck.id}
-                    className="group flex flex-col bg-transparent border-y border-slate-900/5 dark:border-white/5 py-3 overflow-hidden max-h-12 hover:max-h-[500px] focus-within:max-h-[500px] transition-all duration-500 ease-in-out relative"
+                    className="group flex flex-col premium-glass subpixel-border rounded-xl overflow-hidden max-h-[3.25rem] hover:max-h-[520px] focus-within:max-h-[520px] transition-[max-height] duration-500 ease-in-out"
                   >
-                    {/* Header line - like a server rack unit */}
-                    <div className="flex items-center justify-between min-h-6 cursor-default">
-                      <div className="flex items-center gap-4">
-                        <span className="text-[9px] font-mono text-indigo-500 dark:text-indigo-400 opacity-50 font-bold">{numberPrefix}</span>
-                        <h4 className="text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{deck.name}</h4>
+                    <div className="flex items-center justify-between px-4 py-3 min-h-[3.25rem] cursor-default shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-[9px] font-mono text-indigo-500 dark:text-indigo-400 opacity-60 font-bold shrink-0">{numberPrefix}</span>
+                        <h4 className="text-[10px] sm:text-[11px] font-mono font-semibold uppercase tracking-wider text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">{deck.name}</h4>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" title="Ready"></div>
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" title="Ready" />
                         <button
                           type="button"
                           onClick={() => handleDeleteDeck(deck.id)}
-                          className="text-[9px] font-mono uppercase tracking-widest text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="btn-danger-ghost rounded-md px-2 py-0.5 text-[9px] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300"
                         >
                           Delete
                         </button>
                       </div>
                     </div>
 
-                    {/* Expandable item views */}
-                    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300 mt-4 space-y-4 pl-8 border-l border-slate-900/10 dark:border-white/10 ml-1.5">
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-mono">{deck.description || 'N/A'}</p>
-                      <div className="pt-2 space-y-1">
-                        {quizzes.length > 0 ? (
-                          quizzes.map(quiz => {
-                            const count = questionsCountMap[quiz.id] || 0;
-                            return (
-                              <button
-                                key={quiz.id}
-                                type="button"
-                                onClick={() => handleStudyQuiz(quiz.id, deck.id)}
-                                className="w-full flex items-center justify-between text-left py-2 px-2 rounded hover:pl-3 border-l-2 border-l-transparent hover:border-l-indigo-500 transition-all text-xs font-mono group/btn hover:bg-slate-50 dark:hover:bg-slate-900/50 active:scale-[0.98]"
-                              >
-                                <span className="text-slate-600 dark:text-slate-400 group-hover/btn:text-indigo-600 dark:group-hover/btn:text-indigo-400 truncate">
-                                  {quiz.name}
-                                </span>
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">[{count}]</span>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <p className="text-[9px] text-slate-400 font-mono">EMPTY_STATE</p>
-                        )}
-                      </div>
-
-                      {/* Inline Quiz Creation for sub-decks */}
-                      <div className="pt-2">
-                        {activeDeckForNewQuiz === deck.id ? (
-                          <div className="flex flex-col gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded border border-slate-900/5 dark:border-white/5">
-                            <input
-                              type="text"
-                              placeholder="Quiz name"
-                              value={newQuizName}
-                              onChange={(e) => setNewQuizName(e.target.value)}
-                              className="w-full px-2 py-1 text-[9px] bg-transparent border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-indigo-500 uppercase"
-                            />
-                            <div className="flex gap-2 justify-end">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveDeckForNewQuiz(null);
-                                  setNewQuizName('');
-                                }}
-                                className="px-3 py-1.5 rounded text-[10px] font-mono text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 uppercase active:scale-[0.98] transition"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleCreateQuiz(deck.id)}
-                                className="px-3 py-1.5 rounded bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-mono font-bold uppercase hover:bg-indigo-600 dark:hover:bg-indigo-400 active:scale-[0.98] transition"
-                              >
-                                Create
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setActiveDeckForNewQuiz(deck.id)}
-                            className="text-[9px] font-mono font-bold text-slate-400 hover:text-indigo-500 py-0.5 uppercase tracking-widest transition-colors"
-                          >
-                            + Add quiz
-                          </button>
-                        )}
-                      </div>
+                    <div className="deck-expand-panel group-hover:deck-expand-panel-visible group-focus-within:deck-expand-panel-visible px-4 pb-4 space-y-4 border-t border-slate-900/5 dark:border-white/5 pt-4">
+                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-mono">{deck.description || 'N/A'}</p>
+                      <DeckQuizList
+                        quizzes={quizzes}
+                        questionsCountMap={questionsCountMap}
+                        variant="compact"
+                        disabled={deckLoading}
+                        onStudy={(quizId) => handleStudyQuiz(quizId, deck.id)}
+                        onAddQuestions={(quizId, quizName) =>
+                          openAddQuestionsModal(deck.id, quizId, quizName)
+                        }
+                        onDelete={(quizId, quizName, count) =>
+                          handleDeleteQuiz(deck.id, quizId, quizName, count)
+                        }
+                      />
+                      {renderAddQuizButton(deck.id, true)}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="border border-slate-900/10 dark:border-white/10 p-6 rounded-xl border-dashed bg-slate-50/50 dark:bg-slate-900/30">
+              <div className="premium-glass subpixel-border p-6 rounded-xl border-dashed">
                 <p className="text-xs italic text-slate-500 dark:text-slate-400 font-mono text-center">No other decks yet</p>
               </div>
             )}
@@ -562,17 +511,44 @@ export default function DecksPage() {
           <span className="text-7xl mb-8 opacity-75">📚</span>
           <h2 className="font-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight text-slate-900 dark:text-slate-100 mt-2 mb-6 font-light">Your Library is Empty</h2>
           <p className="text-slate-500 dark:text-slate-400 text-lg sm:text-xl leading-relaxed mb-10 max-w-2xl font-sans">
-            Create folder decks to organize active recall quizzes, or paste raw study notes to build tests instantly.
+            Create an empty folder to organize quizzes, or bulk import questions to get started instantly.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate('/create-deck')}
-            className="inline-flex items-center justify-center rounded-2xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-10 py-4 text-lg font-bold tracking-wide min-w-[280px] uppercase text-white dark:text-slate-950 shadow-md transition-all active:scale-[0.98]"
-          >
-            Create Your First Deck
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setShowCreateFolderModal(true)}
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 px-10 py-4 text-lg font-bold tracking-wide min-w-[280px] uppercase text-white dark:text-slate-950 shadow-md transition-all active:scale-[0.98]"
+            >
+              New Folder
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/create-deck')}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-900/10 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 hover:bg-slate-900/5 dark:hover:bg-white/5 px-10 py-4 text-lg font-bold tracking-wide min-w-[280px] uppercase text-slate-700 dark:text-slate-300 shadow-sm transition-all active:scale-[0.98]"
+            >
+              Bulk Import
+            </button>
+          </div>
         </div>
       )}
+      <CreateFolderModal
+        isOpen={showCreateFolderModal}
+        onClose={() => setShowCreateFolderModal(false)}
+      />
+      <CreateQuizModal
+        isOpen={createQuizDeckId !== null}
+        deckId={createQuizDeckId}
+        onClose={() => setCreateQuizDeckId(null)}
+        onSuccess={handleQuizCreated}
+      />
+      <AddQuestionsModal
+        isOpen={addQuestionsTarget !== null}
+        deckId={addQuestionsTarget?.deckId ?? null}
+        quizId={addQuestionsTarget?.quizId ?? null}
+        quizName={addQuestionsTarget?.quizName ?? ''}
+        onClose={() => setAddQuestionsTarget(null)}
+        onSuccess={handleQuestionsAppended}
+      />
     </div>
   );
 }

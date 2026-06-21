@@ -6,6 +6,7 @@ import {
   createQuiz,
   updateQuiz,
   deleteQuiz,
+  getQuizById,
   getQuizzesByDeckId,
   addQuestions,
   getQuestionsByQuizId,
@@ -13,7 +14,7 @@ import {
   deleteQuestion,
 } from '../../../shared/services/indexedDB.js'
 
-export function useQuizDeckHierarchy({ dispatch }) {
+export function useQuizDeckHierarchy({ dispatch, currentQuizId = null }) {
   const setState = useCallback(
     (payload) => dispatch({ type: 'SET_STATE', payload }),
     [dispatch],
@@ -56,6 +57,11 @@ export function useQuizDeckHierarchy({ dispatch }) {
     [setState],
   )
 
+  const createEmptyDeck = useCallback(
+    async (deckName, description = '') => createNewDeck(deckName, description),
+    [createNewDeck],
+  )
+
   const createNewQuiz = useCallback(
     async (deckId, quizName, description = '') => {
       if (!deckId) {
@@ -79,9 +85,15 @@ export function useQuizDeckHierarchy({ dispatch }) {
       }
 
       await addQuestions(quizId, deckId, questions)
-      await loadQuizQuestions(quizId)
+      await loadDeckQuizzes(deckId)
+
+      if (currentQuizId === quizId) {
+        await loadQuizQuestions(quizId)
+      }
+
+      return questions.length
     },
-    [loadQuizQuestions],
+    [currentQuizId, loadDeckQuizzes, loadQuizQuestions],
   )
 
   const updateQuizQuestion = useCallback(
@@ -105,11 +117,15 @@ export function useQuizDeckHierarchy({ dispatch }) {
   )
 
   const deleteQuizById = useCallback(
-    async (quizId, selectedDeckForQuiz, currentQuizId) => {
-      await deleteQuiz(quizId)
-      if (selectedDeckForQuiz) {
-        await loadDeckQuizzes(selectedDeckForQuiz)
+    async (quizId) => {
+      const existingQuiz = await getQuizById(quizId)
+      if (!existingQuiz) {
+        throw new Error('Quiz not found')
       }
+
+      await deleteQuiz(quizId)
+      await loadDeckQuizzes(existingQuiz.deckId)
+
       if (currentQuizId === quizId) {
         setState({
           currentQuizId: null,
@@ -118,8 +134,10 @@ export function useQuizDeckHierarchy({ dispatch }) {
           idx: 0,
         })
       }
+
+      return existingQuiz.deckId
     },
-    [loadDeckQuizzes, setState],
+    [currentQuizId, loadDeckQuizzes, setState],
   )
 
   const updateDeckInfo = useCallback(
@@ -144,6 +162,7 @@ export function useQuizDeckHierarchy({ dispatch }) {
   return useMemo(
     () => ({
       createNewDeck,
+      createEmptyDeck,
       createNewQuiz,
       loadDeckQuizzes,
       loadQuizQuestions,
@@ -156,6 +175,7 @@ export function useQuizDeckHierarchy({ dispatch }) {
     }),
     [
       createNewDeck,
+      createEmptyDeck,
       createNewQuiz,
       loadDeckQuizzes,
       loadQuizQuestions,

@@ -52,7 +52,7 @@ export function useQuiz() {
     [],
   )
 
-  const hierarchy = useQuizDeckHierarchy({ dispatch })
+  const hierarchy = useQuizDeckHierarchy({ dispatch, currentQuizId })
 
   const current = quiz[idx]
   const total = quiz.length

@@ -50,7 +50,7 @@ I'm **Sankalpa KMCP**, a first-year IT undergrad at **SLIIT**, interested in AI 
 
 Built with **React 19**, **Tailwind CSS v4**, and **Vite** — 100% client-side, no backend.
 
-🔗 [Add your repo or demo link here]
+🔗 **Live demo:** [https://IT25100142.github.io/promptQuiz/](https://IT25100142.github.io/promptQuiz/) · **Repo:** [github.com/IT25100142/promptQuiz](https://github.com/IT25100142/promptQuiz)
 
 📎 **Attach a screenshot or screen recording before posting.**
 

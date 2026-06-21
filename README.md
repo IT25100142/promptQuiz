@@ -326,4 +326,4 @@ First-year IT undergraduate at **SLIIT**, building practical, privacy-first tool
 
 ## License
 
-Open-source. Add a `LICENSE` file before public distribution.
+MIT — see [LICENSE](LICENSE).

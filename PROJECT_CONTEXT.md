@@ -11,7 +11,7 @@
 
 **Project name:** PromptQuiz (`prompt-quiz` in `package.json`)
 
-**Summary:** PromptQuiz is a high-performance, single-page React study application for **active recall** and **spaced repetition**. Users create interactive quiz decks from structured JSON or plain-text formats, run quiz sessions in the browser, and persist progress locally in IndexedDB.
+**Summary:** PromptQuiz is a high-performance, single-page React study application for **active recall** and **spaced repetition**. Users organize study material in a **folder-and-file hierarchy** (decks → quizzes → questions), create content granularly or via bulk import, run quiz sessions in the browser, and persist progress locally in IndexedDB.
 
 **Problem it solves:** Provides an offline-first flashcard/quiz tool with flexible import formats, self-assessment scoring, SM-2 spaced repetition scheduling, and an in-app AI Prompt Builder that helps users generate LLM prompts for external tools (Gemini, Claude, ChatGPT) and paste structured responses back into the app.
 
@@ -95,7 +95,12 @@ promptQuiz/
     │   ├── QuizView.jsx
     │   ├── CommandHUD.jsx
     │   ├── CardOverviewModal.jsx
-    │   └── RouteErrorBoundary.jsx
+    │   ├── RouteErrorBoundary.jsx
+    │   ├── CreateFolderModal.jsx
+    │   ├── CreateQuizModal.jsx
+    │   ├── AddQuestionsModal.jsx
+    │   ├── QuestionImportForm.jsx
+    │   └── DeckQuizList.jsx
     ├── contexts/
     │   └── QuizContext.jsx       # Three-slice context provider
     ├── pages/                    # Route-level page components (4 pages)
@@ -104,7 +109,7 @@ promptQuiz/
     │   │   └── AiPromptBuilderModal.jsx
     │   ├── quiz/
     │   │   ├── components/Progress/   # ProgressBar, QuizProgress
-    │   │   ├── hooks/                 # Reducer, session, deck sync, navigation
+    │   │   ├── hooks/                 # Reducer, session, deck sync, hierarchy, question import
     │   │   ├── utils/                 # Scoring, shuffle, metrics
     │   │   └── constants/
     │   └── ui/
@@ -123,8 +128,8 @@ promptQuiz/
 
 | Directory | Purpose |
 |-----------|---------|
-| `src/pages/` | Top-level route components: `DecksPage`, `CreateDeckPage`, `QuizPage`, `ResultsPage`. |
-| `src/components/` | Active shared UI: `Layout`, `QuizView`, `CommandHUD`, `CardOverviewModal`, `RouteErrorBoundary`. |
+| `src/pages/` | Top-level route components: `DecksPage`, `CreateDeckPage` (bulk import), `QuizPage`, `ResultsPage`. |
+| `src/components/` | Active shared UI: `Layout`, `QuizView`, `CommandHUD`, library modals (`CreateFolderModal`, `CreateQuizModal`, `AddQuestionsModal`), `QuestionImportForm`, `DeckQuizList`, `RouteErrorBoundary`. |
 | `src/contexts/` | Global state via three memoized context slices (session, library, shell). |
 | `src/features/ai/` | `AiPromptBuilderModal.jsx` — LLM prompt generation and response import (no API calls). |
 | `src/features/quiz/` | Quiz reducer, hooks, scoring utilities, and progress subcomponents. |
@@ -151,32 +156,82 @@ index.html → main.jsx → App.jsx (basename from BASE_URL)
 
 ### Deck Library Dashboard
 
-**Purpose:** Browse, organize, and manage saved deck folders and their quizzes.
+**Purpose:** Browse, organize, and manage saved deck folders and their nested quizzes.
 
-**How it works:** On load, `useQuizDeckSync` fetches all decks from IndexedDB into context. DecksPage displays decks, nested quizzes, question counts, review stats, and a 7-day activity matrix. Users can start a quiz, add quizzes inline, delete decks, and import/export library snapshots.
+**How it works:** On load, `useQuizDeckSync` fetches all decks from IndexedDB into context. `DecksPage` displays decks in a bento layout, nested quizzes via `DeckQuizList`, question counts, review stats, and a 7-day activity matrix. Users can:
+
+- Create an **empty folder** via `CreateFolderModal` (**New Folder** button)
+- Create **quizzes inside a deck** via `CreateQuizModal` (**Add Quiz** button)
+- **Append questions** to an existing quiz via `AddQuestionsModal` (**Add Questions** on each quiz row)
+- **Bulk import** deck + quiz + questions in one step via `/create-deck` (**Bulk Import** button / nav **Import**)
+- Start a quiz (**Study**), delete a quiz, delete a deck, and import/export library snapshots
 
 **Important files:**
 - `src/pages/DecksPage.jsx`
+- `src/components/DeckQuizList.jsx`
+- `src/components/CreateFolderModal.jsx`
+- `src/components/CreateQuizModal.jsx`
+- `src/components/AddQuestionsModal.jsx`
 - `src/features/quiz/hooks/useQuizDeckSync.js`
+- `src/features/quiz/hooks/useQuizDeckHierarchy.js`
 - `src/shared/services/indexedDB.js`
 
 **Related data models:** `decks`, `quizzes`, `questions`, `reviewSchedule`
 
 ---
 
-### Deck Creation and Import
+### Folder and Quiz Management (Granular Hierarchy)
 
-**Purpose:** Create new decks by pasting questions in JSON or plain-text formats.
+**Purpose:** Let users build a library incrementally — empty folders first, then multiple named quizzes per folder, then questions appended over time.
 
-**How it works:** User enters deck name/description and raw question text on CreateDeckPage. `parseRawInput()` auto-detects format (AI block, markdown, CSV). Zod validates structure. A deck, default quiz, and questions are written to IndexedDB. User is redirected to `/decks`.
+**How it works:**
+
+1. **Empty folder:** `CreateFolderModal` collects folder name + optional description → `library.createEmptyDeck()` → `library.loadDecks()`.
+2. **Quiz shell:** `CreateQuizModal` (opened from `DecksPage` with a `deckId`) collects quiz name + description → `library.createNewQuiz()`.
+3. **Quiz list UI:** `DeckQuizList` renders each quiz with question count and actions: **Study**, **Add Questions**, **Delete**.
+4. **Quiz delete:** `library.deleteQuizById(quizId)` with user confirmation; cascades question + review schedule cleanup in IndexedDB.
+
+**Important files:**
+- `src/components/CreateFolderModal.jsx`
+- `src/components/CreateQuizModal.jsx`
+- `src/components/DeckQuizList.jsx`
+- `src/features/quiz/hooks/useQuizDeckHierarchy.js`
+
+**Related data models:** `decks`, `quizzes`
+
+---
+
+### Bulk Import (Create Deck Page)
+
+**Purpose:** One-shot import path — create a new folder, default quiz, and all questions in a single submission.
+
+**How it works:** User navigates to `/create-deck` (header/nav label: **Import**). User enters deck name/description and pastes raw question text. The shared `useQuestionImport` hook validates input via `parseAndValidateRawInput()`. On submit: `createNewDeck()` → `createNewQuiz()` (default name `{deckName} - Quiz 1`) → `addQuestionsToQuiz()` → redirect to `/decks`.
 
 **Important files:**
 - `src/pages/CreateDeckPage.jsx`
+- `src/components/QuestionImportForm.jsx`
+- `src/features/quiz/hooks/useQuestionImport.js`
 - `src/shared/utils/parsers.js`
 - `src/shared/schemas/quizQuestions.js`
 - `src/features/quiz/hooks/useQuizDeckHierarchy.js`
 
 **Related data models:** `decks`, `quizzes`, `questions`
+
+---
+
+### Append Questions to Existing Quiz
+
+**Purpose:** Import additional questions into an existing quiz without replacing prior cards.
+
+**How it works:** From `DecksPage`, user clicks **Add Questions** on a quiz row → `AddQuestionsModal` opens with `deckId` + `quizId`. User pastes text; `useQuestionImport` validates live. On submit, `appendToQuiz()` calls `library.addQuestionsToQuiz()`, which uses IndexedDB `addQuestions()` to append after existing rows (`order = existingCount + index`). `DecksPage` refreshes local quiz/count maps via `fetchQuizzes(deckId)` on success.
+
+**Important files:**
+- `src/components/AddQuestionsModal.jsx`
+- `src/components/QuestionImportForm.jsx`
+- `src/features/quiz/hooks/useQuestionImport.js`
+- `src/features/quiz/hooks/useQuizDeckHierarchy.js`
+
+**Related data models:** `questions`, `reviewSchedule` (unchanged on append; new questions have no schedule until studied with SM-2)
 
 ---
 
@@ -232,10 +287,17 @@ index.html → main.jsx → App.jsx (basename from BASE_URL)
 
 **Purpose:** Generate copy-paste prompts for external LLMs and import pasted responses as questions.
 
-**How it works:** Modal opened from Layout header. User configures topic, question count, and types. App generates a formatted prompt string (no API call). User copies prompt to external LLM, pastes response back. `parseRawInput()` + Zod validation import questions into selected or new deck.
+**How it works:** Modal opened from Layout header. User configures topic, question count, and types. App generates a formatted prompt string (no API call). User copies prompt to external LLM, pastes response back. Target selection:
+
+- **Deck:** existing deck or new deck name
+- **Quiz:** existing quiz in selected deck (append) or new quiz (default when deck has no quizzes)
+
+Import uses `useQuestionImport` → `appendToQuiz()` → `library.addQuestionsToQuiz()`. Existing quiz imports **append** questions; new quiz imports create a shell then add questions.
 
 **Important files:**
 - `src/features/ai/AiPromptBuilderModal.jsx`
+- `src/features/quiz/hooks/useQuestionImport.js`
+- `src/components/QuestionImportForm.jsx`
 - `src/shared/utils/parsers.js`
 
 **External services:** User's choice of external LLM (not integrated in code)
@@ -270,11 +332,16 @@ index.html → main.jsx → App.jsx (basename from BASE_URL)
 
 ## 5. Application Flow
 
-### Main user journey: First deck → first quiz → results
+### Main user journey: First folder → first quiz → first questions → study → results
 
 1. User opens app at `/` → redirected to `/decks`.
-2. User clicks **New Deck** or navigates to `/create-deck`.
-3. User pastes questions (JSON or text), submits → deck + quiz + questions saved to IndexedDB → redirect to `/decks`.
+2. **Option A — Granular path:**
+   - User clicks **New Folder** → `CreateFolderModal` → empty deck saved.
+   - User clicks **Add Quiz** on a deck → `CreateQuizModal` → empty quiz saved.
+   - User clicks **Add Questions** on a quiz → `AddQuestionsModal` → questions appended.
+3. **Option B — Bulk import path:**
+   - User clicks **Bulk Import** or nav **Import** → `/create-deck`.
+   - User pastes questions → deck + default quiz + all questions saved in one step → redirect to `/decks`.
 4. User clicks **Study** on a quiz → questions loaded into session state → navigate to `/quiz`.
 5. User answers questions, navigates forward/back, optionally rates SM-2 quality.
 6. On last question completion → `completeQuizSession()` → navigate to `/results`.
@@ -285,7 +352,9 @@ index.html → main.jsx → App.jsx (basename from BASE_URL)
 1. User opens **AI Builder** from header (any page).
 2. Configures topic, count, question types → copies generated prompt.
 3. Sends prompt to external LLM manually.
-4. Pastes LLM output into modal → parsed and validated → saved to deck.
+4. Pastes LLM output into modal → `useQuestionImport` validates.
+5. Selects target deck and target quiz (existing append or new quiz).
+6. Questions saved via `appendToQuiz()` → modal closes → library refreshed.
 
 ### Frontend flow
 
@@ -297,12 +366,21 @@ App.jsx
                     └── useQuizSession / useQuizLibrary / useQuizShell
 ```
 
-### Data flow (create deck)
+### Data flow (bulk import via CreateDeckPage)
 
 ```
-Raw text → parseRawInput() → validateQuestionStructure() (Zod)
-  → createDeck() → createQuiz() → addQuestions() → IndexedDB
+Raw text → parseAndValidateRawInput() (useQuestionImport)
+  → createNewDeck() → createNewQuiz() → addQuestionsToQuiz() → IndexedDB
   → getAllDecks() → context.savedDecks updated
+```
+
+### Data flow (append questions to existing quiz)
+
+```
+Raw text → parseAndValidateRawInput() (useQuestionImport)
+  → addQuestions() with order = existingCount + index → IndexedDB
+  → loadDeckQuizzes(deckId) → context.deckQuizzes updated
+  → DecksPage.fetchQuizzes(deckId) → local questionsCountMap updated
 ```
 
 ### Data flow (quiz session)
@@ -352,7 +430,26 @@ Browser Storage (IndexedDB / localStorage)
 - **Routing:** React Router 7 with nested layout route (`Layout` wraps all pages). `BrowserRouter` uses `basename` derived from `import.meta.env.BASE_URL` for GitHub Pages subpath hosting.
 - **State:** Single `useReducer` in `useQuizState.js`, split into three memoized context values to limit re-renders.
 - **Feature folders:** Domain code under `src/features/{ai,quiz,ui}`.
-- **Shared components:** `src/components/` holds actively used layout and quiz UI; `src/features/` holds domain modules and canonical `MarkdownRenderer`.
+- **Shared components:** `src/components/` holds actively used layout, library modals, and quiz UI; `src/features/` holds domain modules and canonical `MarkdownRenderer`.
+
+### Import pipeline architecture
+
+All paste-based question ingestion flows through `src/features/quiz/hooks/useQuestionImport.js`:
+
+```
+Raw text
+  ↓
+parseAndValidateRawInput()  ← parseRawInput() + validateQuestionStructure() (Zod)
+  ↓
+Consumer-specific persistence
+  ├── AddQuestionsModal        → appendToQuiz() → addQuestionsToQuiz() → addQuestions() [append order]
+  ├── AiPromptBuilderModal     → appendToQuiz() (existing or new quiz target)
+  └── CreateDeckPage (bulk)    → getValidatedQuestions() → createNewDeck + createNewQuiz + addQuestionsToQuiz
+```
+
+Shared UI for the textarea + validation banner: `src/components/QuestionImportForm.jsx`.
+
+Deck/quiz CRUD orchestration (non-import): `src/features/quiz/hooks/useQuizDeckHierarchy.js` — exposed on `useQuizLibrary()` as `createEmptyDeck`, `createNewQuiz`, `addQuestionsToQuiz`, `deleteQuizById`, etc.
 
 ### Backend architecture
 
@@ -360,13 +457,23 @@ Browser Storage (IndexedDB / localStorage)
 
 ### Database architecture
 
-IndexedDB database `PromptQuizDB` (version 2) with four object stores modeling a hierarchy:
+IndexedDB database `PromptQuizDB` (version 2) with four object stores modeling a folder-and-file hierarchy:
 
 ```
-decks (1) ──→ (many) quizzes ──→ (many) questions
-                                      ↓
-                              (1) reviewSchedule per question
+decks (folder) ──→ (many) quizzes (file) ──→ (many) questions
+                                                    ↓
+                                        (1) reviewSchedule per question
 ```
+
+**Cascade deletes (implemented and tested):**
+
+| Delete operation | Cascade chain |
+|------------------|---------------|
+| `deleteDeck(deckId)` | → `deleteQuiz()` for each nested quiz → `deleteQuestionsByQuizId()` → `deleteReviewSchedulesByQuestionIds()` → question rows removed |
+| `deleteQuiz(quizId)` | → `deleteQuestionsByQuizId()` → `deleteReviewSchedulesByQuestionIds()` → quiz row removed |
+| `deleteQuestionsByQuizId(quizId)` | → gather question IDs → purge matching `reviewSchedule` rows → delete questions |
+
+No orphaned `reviewSchedule` rows remain after deck or quiz deletion. Covered by `src/shared/services/db.test.js`.
 
 ### API architecture
 
@@ -378,6 +485,7 @@ decks (1) ──→ (many) quizzes ──→ (many) questions
 - **Reducer + hook composition:** `quizReducer` for state; specialized hooks for deck sync, session actions, review, JSON input.
 - **Service module:** `indexedDB.js` encapsulates all persistence.
 - **Schema-first validation:** Zod schemas shared between import, export, and preview.
+- **Unified import pipeline:** `useQuestionImport.js` centralizes `parseAndValidateRawInput()` for all paste-import entry points.
 - **Discriminated union:** Question types validated via Zod `discriminatedUnion('type', ...)`.
 
 ### Architectural weaknesses / unusual decisions
@@ -399,6 +507,17 @@ decks (1) ──→ (many) quizzes ──→ (many) questions
 **Version:** `2` (defined in `indexedDB.js`)
 
 **Migration:** Handled in `request.onupgradeneeded` — creates stores and indexes if missing. No explicit data migration logic between versions beyond store creation.
+
+**Cascade delete helpers:**
+
+| Function | Role |
+|----------|------|
+| `deleteReviewSchedulesByQuestionIds(questionIds)` | Looks up `reviewSchedule` rows by `questionId` index and deletes them |
+| `deleteQuestionsByQuizId(quizId)` | Purges review schedules for all quiz questions, then deletes question rows |
+| `deleteQuiz(quizId)` | Calls `deleteQuestionsByQuizId()`, then deletes quiz row |
+| `deleteDeck(deckId)` | Calls `deleteQuiz()` for each nested quiz, then deletes deck row |
+
+Tests: `src/shared/services/db.test.js` (`should delete review schedules when a quiz is deleted`, `should cascade review schedule deletion when a deck is deleted`).
 
 ---
 
@@ -505,6 +624,7 @@ decks (1) ──→ (many) quizzes ──→ (many) questions
 
 **Relationships:**
 - One schedule entry per question (unique index on `questionId`)
+- Deleted automatically when parent question is removed via `deleteReviewSchedulesByQuestionIds()` (called from `deleteQuestionsByQuizId()`)
 
 **Used by:**
 - `src/components/QuizView.jsx` (SM-2 rating writes)
@@ -605,11 +725,12 @@ If a backend is added in the future, document new endpoints here.
 **Responsibilities:**
 - Open/manage `PromptQuizDB` connection
 - CRUD for decks, quizzes, questions, review schedules
+- Cascading deletes: `deleteDeck` → `deleteQuiz` → `deleteQuestionsByQuizId` → `deleteReviewSchedulesByQuestionIds`
 - Export/import library snapshots
 - localStorage helpers for last used deck ID
 - Review stats and activity timestamps
 
-**Exports:** `initDB`, deck/quiz/question CRUD, review schedule functions, `exportLibrarySnapshot`, `importLibrarySnapshot`, test utilities `closeDB`, `resetDBPromise`
+**Exports:** `initDB`, deck/quiz/question CRUD, review schedule functions (including `deleteReviewSchedulesByQuestionIds`), `exportLibrarySnapshot`, `importLibrarySnapshot`, test utilities `closeDB`, `resetDBPromise`
 
 **Used by:** Hooks, pages, QuizView, CommandHUD, tests
 
@@ -639,7 +760,7 @@ If a backend is added in the future, document new endpoints here.
 - Define per-type question schemas
 - Export `validateQuestionStructure`, `validateQuizQuestions`, `validateLibrarySnapshot`
 
-**Used by:** CreateDeckPage, AiPromptBuilderModal, indexedDB import/export, useQuizState preview
+**Used by:** CreateDeckPage, AddQuestionsModal, AiPromptBuilderModal, `useQuestionImport.js`, indexedDB import/export, useQuizState preview
 
 ---
 
@@ -651,7 +772,7 @@ If a backend is added in the future, document new endpoints here.
 - `sanitizeInput`, `detectFormat`, `parseRawInput`, `safeParseQuizJson`
 - Parse AI block, markdown, and CSV formats into question objects
 
-**Used by:** `CreateDeckPage.jsx`, `AiPromptBuilderModal.jsx`, `helpers.js` (re-export), tests
+**Used by:** `useQuestionImport.js` (`parseAndValidateRawInput` → `parseRawInput`), `CreateDeckPage.jsx`, `AiPromptBuilderModal.jsx`, `helpers.js` (re-export), tests
 
 ---
 
@@ -676,7 +797,8 @@ If a backend is added in the future, document new endpoints here.
 **Purpose:** App shell with navigation, theme, toast, AI modal, Command HUD, and error boundary.
 
 **Responsibilities:**
-- Sticky header with nav links
+- Sticky header with nav links (**My Library**, **Import** → `/create-deck`)
+- Header actions: **AI Builder**, **Import** (primary CTA to bulk import)
 - Dark/light theme toggle (localStorage `theme`)
 - Global toast auto-dismiss (3s)
 - Render `AiPromptBuilderModal` and `CommandHUD`
@@ -703,6 +825,64 @@ If a backend is added in the future, document new endpoints here.
 
 ---
 
+### src/features/quiz/hooks/useQuestionImport.js
+
+**Purpose:** Unified paste-import pipeline for all question-ingestion entry points.
+
+**Responsibilities:**
+- Export pure function `parseAndValidateRawInput(rawText)` — wraps `parseRawInput()` + `validateQuestionStructure()` (Zod)
+- Hook API: `rawText`, `setRawText`, live `validationResult`, `getValidatedQuestions()`, `appendToQuiz(quizId, deckId)`, `isImporting`, `reset()`
+- `appendToQuiz()` delegates persistence to `library.addQuestionsToQuiz()` (IndexedDB append semantics)
+
+**Used by:**
+- `src/components/AddQuestionsModal.jsx`
+- `src/pages/CreateDeckPage.jsx` (validation only; bulk orchestration stays in page)
+- `src/features/ai/AiPromptBuilderModal.jsx`
+
+**Tests:** `src/features/quiz/hooks/useQuestionImport.test.js`
+
+---
+
+### src/components/QuestionImportForm.jsx
+
+**Purpose:** Reusable paste textarea + live validation banner.
+
+**Used by:** `AddQuestionsModal.jsx`, `CreateDeckPage.jsx`, `AiPromptBuilderModal.jsx`
+
+---
+
+### src/components/CreateFolderModal.jsx
+
+**Purpose:** Glassmorphism modal to create an empty deck folder (name + optional description).
+
+**Used by:** `DecksPage.jsx`
+
+---
+
+### src/components/CreateQuizModal.jsx
+
+**Purpose:** Glassmorphism modal to create an empty quiz shell inside a deck (`deckId` prop).
+
+**Used by:** `DecksPage.jsx`
+
+---
+
+### src/components/AddQuestionsModal.jsx
+
+**Purpose:** Glassmorphism modal to append validated questions to an existing quiz (`deckId`, `quizId`, `quizName` props).
+
+**Used by:** `DecksPage.jsx`
+
+---
+
+### src/components/DeckQuizList.jsx
+
+**Purpose:** Presentational quiz list for an expanded deck — shows question count and **Study** / **Add Questions** / **Delete** actions.
+
+**Used by:** `DecksPage.jsx`
+
+---
+
 ### src/features/ai/AiPromptBuilderModal.jsx
 
 **Purpose:** Modal for LLM prompt generation and response import.
@@ -710,7 +890,8 @@ If a backend is added in the future, document new endpoints here.
 **Responsibilities:**
 - Generate prompt from user config (inline — no separate service module)
 - Copy to clipboard
-- Parse pasted LLM output and save to deck/quiz
+- Target deck (existing or new) and target quiz (existing append or new quiz)
+- Parse pasted LLM output via `useQuestionImport` and save with `appendToQuiz()`
 
 **Used by:** `Layout.jsx`
 
@@ -912,9 +1093,10 @@ npm run lint
 |-------------|----------|
 | New page/route | `src/pages/` + register in `src/App.jsx` |
 | Reusable UI component | Prefer `src/features/ui/` for display primitives; use `src/components/` for layout/session UI |
-| Deck/quiz business logic | `src/features/quiz/hooks/` or `src/shared/services/indexedDB.js` |
+| Add deck/quiz hierarchy logic | `src/features/quiz/hooks/useQuizDeckHierarchy.js` |
 | New question type | `quizQuestions.js` (Zod) + `parsers.js` + `QuizView.jsx` rendering |
 | Persistence changes | `src/shared/services/indexedDB.js` (bump DB_VERSION if schema changes) |
+| Paste-import / validation UI | `src/features/quiz/hooks/useQuestionImport.js` + `src/components/QuestionImportForm.jsx` |
 | AI prompt logic | `src/features/ai/AiPromptBuilderModal.jsx` |
 | Tests | Co-locate as `*.test.js` or `*.test.jsx` beside source |
 | Global styles | `src/index.css` |
@@ -958,7 +1140,7 @@ Not clearly identified from the codebase. No CONTRIBUTING.md or commit lint conf
 
 **Setup:** `src/test/setup.js` — imports fake-indexeddb, jest-dom matchers, auto cleanup after each test
 
-### Test files (10 total)
+### Test files (11 total)
 
 | File | Focus |
 |------|-------|
@@ -966,7 +1148,8 @@ Not clearly identified from the codebase. No CONTRIBUTING.md or commit lint conf
 | `src/shared/utils/parsers.test.js` | Text format parsing |
 | `src/shared/utils/helpers.test.js` | safeParseQuizJson, SAMPLE_QUIZ |
 | `src/shared/services/sm2.test.js` | SM-2 algorithm |
-| `src/shared/services/db.test.js` | IndexedDB CRUD |
+| `src/shared/services/db.test.js` | IndexedDB CRUD + cascade delete of `reviewSchedule` |
+| `src/features/quiz/hooks/useQuestionImport.test.js` | `parseAndValidateRawInput()` pipeline |
 | `src/features/quiz/utils/scoreSession.test.js` | Scoring correctness |
 | `src/features/quiz/utils/quizDerivedMetrics.test.js` | Progress/score metrics |
 | `src/contexts/QuizContext.test.jsx` | Context provider hooks |
@@ -1083,7 +1266,7 @@ Not applicable for local dev. Production static hosting should configure standar
 
 1. Read `src/contexts/QuizContext.jsx` and `src/features/quiz/hooks/useQuizState.js` to understand state shape.
 2. Read `src/shared/services/indexedDB.js` for any persistence-related change.
-3. For parsing/import changes, edit `src/shared/utils/parsers.js` only (`helpers.js` re-exports).
+3. For parsing/import changes, edit `src/shared/utils/parsers.js` only (`helpers.js` re-exports). For import orchestration, prefer extending `src/features/quiz/hooks/useQuestionImport.js`.
 4. Inspect the target page in `src/pages/` and its imported components.
 5. For deployment/routing changes, check `vite.config.js` `base`, `src/App.jsx` basename, and `public/404.html`.
 
@@ -1094,7 +1277,8 @@ Not applicable for local dev. Production static hosting should configure standar
 - `src/features/quiz/hooks/useQuizState.js` — state composition
 - `src/shared/services/indexedDB.js` — all persistence
 - `src/shared/schemas/quizQuestions.js` — validation source of truth
-- `src/shared/utils/parsers.js` — parsing source of truth
+- `src/shared/utils/parsers.js` — low-level parsing (used by `useQuestionImport`)
+- `src/features/quiz/hooks/useQuestionImport.js` — unified paste-import pipeline
 - `src/components/QuizView.jsx` — quiz UI + SM-2 writes
 - `src/features/ui/display/MarkdownRenderer.jsx` — question text rendering
 - `.github/workflows/deploy.yml` — GitHub Pages deployment
@@ -1103,7 +1287,8 @@ Not applicable for local dev. Production static hosting should configure standar
 
 - `indexedDB.js` — bump `DB_VERSION` and add migration logic for schema changes
 - `quizQuestions.js` — changes affect import, export, preview, and session validation
-- `parsers.js` — single source of truth for all import formats
+- `parsers.js` — low-level parse functions; extend for new formats
+- `useQuestionImport.js` — shared import orchestration for all paste-import UIs
 - `quizReducer.js` / `useQuizState.js` — broad impact on all pages
 - Library import (`importLibrarySnapshot`) — destructive replace mode
 - `vite.config.js` `base` + `App.jsx` basename + `404.html` — must stay in sync for GitHub Pages
@@ -1174,7 +1359,7 @@ npm run build   # verify production build succeeds
 | Improvement | Why | First step | Related files |
 |-------------|-----|------------|---------------|
 | Extract SM-2 writes from QuizView | UI component doing persistence | Create `useReviewSchedule` hook | `QuizView.jsx`, new hook |
-| Fix ESLint warnings | 4 pre-existing warnings | Address a11y label and unused vars | `AiPromptBuilderModal.jsx`, `useQuizDeckSync.js`, `parsers.js`, `setup.js` |
+| Fix ESLint warnings | 3 pre-existing warnings | Address unused vars in `useQuizDeckSync.js`, `parsers.js`, `setup.js` |
 | Add lint/test to deploy workflow | Deploy only runs build today | Add `npm run lint && npm test` before build | `.github/workflows/deploy.yml` |
 | Add test coverage reporting | Visibility into gaps | Configure vitest coverage | `vitest.config.js` |
 
@@ -1205,7 +1390,7 @@ npm run build   # verify production build succeeds
 ```bash
 npm install
 npm run dev          # http://localhost:5173/promptQuiz/
-npm test             # 38 tests, 10 files
+npm test             # 43 tests, 11 files
 npm run lint
 npm run build        # assets prefixed with /promptQuiz/
 npm run preview      # test production build locally
@@ -1229,6 +1414,12 @@ npm run preview      # test production build locally
 | MarkdownRenderer | `src/features/ui/display/MarkdownRenderer.jsx` |
 | ProgressBar / QuizProgress | `src/features/quiz/components/Progress/` |
 | AI Prompt Builder | `src/features/ai/AiPromptBuilderModal.jsx` |
+| Create Folder modal | `src/components/CreateFolderModal.jsx` |
+| Create Quiz modal | `src/components/CreateQuizModal.jsx` |
+| Add Questions modal | `src/components/AddQuestionsModal.jsx` |
+| Question import form | `src/components/QuestionImportForm.jsx` |
+| Deck quiz list | `src/components/DeckQuizList.jsx` |
+| Import pipeline hook | `src/features/quiz/hooks/useQuestionImport.js` |
 | Error boundary | `src/components/RouteErrorBoundary.jsx` |
 
 ### Routes / pages
@@ -1236,8 +1427,8 @@ npm run preview      # test production build locally
 | Route | Page |
 |-------|------|
 | `/` | Redirect → `/decks` |
-| `/decks` | DecksPage |
-| `/create-deck` | CreateDeckPage |
+| `/decks` | DecksPage (library dashboard + modals) |
+| `/create-deck` | CreateDeckPage (bulk import — nav label **Import**) |
 | `/create` | Redirect → `/create-deck` |
 | `/quiz` | QuizPage |
 | `/results` | ResultsPage |
@@ -1276,8 +1467,8 @@ npm run preview      # test production build locally
 
 | Term | Meaning |
 |------|---------|
-| **Deck** | Top-level folder in the library; contains one or more quizzes. Stored in IndexedDB `decks` store. |
-| **Quiz** | A named collection of questions within a deck. Stored in `quizzes` store with `deckId` FK. |
+| **Deck** | Top-level **folder** in the library; contains one or more quizzes. Created empty via `CreateFolderModal` or alongside bulk import. Stored in IndexedDB `decks` store. |
+| **Quiz** | A named collection of questions within a deck (like a file in a folder). Created via `CreateQuizModal` or bulk/AI import. Stored in `quizzes` store with `deckId` FK. |
 | **AI block format** | Plain-text import format: blank-line separated question blocks, `*` marks correct answers, optional type markers `[T/F]`, `[FIB]`, `[CLOZE]`, `[SA]`. |
 | **SM-2** | SuperMemo-2 spaced repetition algorithm; schedules review intervals from quality ratings 1–5. Implemented in `sm2.js`. |
 | **Quality rating** | User self-assessment during spaced repetition: 1 = no recall, 5 = perfect recall. |
