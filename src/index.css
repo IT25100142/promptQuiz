@@ -27,6 +27,7 @@
   --animate-fade-up: fade-up 0.4s var(--ease-out-expo) forwards;
   --animate-fade-in: fade-in 0.35s var(--ease-out-expo) forwards;
   --animate-scale-in: scale-in 0.4s var(--ease-out-expo) forwards;
+  --animate-zoom-in: scale-in 0.4s var(--ease-out-expo) forwards;
   --animate-glow-pulse: glow-pulse 2.5s ease-in-out infinite;
 
   @keyframes ambient-glow {
@@ -298,6 +299,91 @@
     @variant dark {
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
     }
+  }
+}
+
+@utility modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fade-in 0.35s var(--ease-out-expo) forwards;
+}
+
+@utility modal-panel {
+  animation: scale-in 0.4s var(--ease-out-expo) forwards;
+}
+
+@utility btn-danger-ghost {
+  color: #e11d48;
+  border: 1px solid rgba(244, 63, 94, 0.12);
+  background-color: rgba(244, 63, 94, 0.04);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s var(--ease-out-expo);
+
+  @variant dark {
+    color: #fb7185;
+    border-color: rgba(244, 63, 94, 0.18);
+    background-color: rgba(244, 63, 94, 0.08);
+  }
+
+  &:hover {
+    background-color: rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.22);
+    color: #be123c;
+
+    @variant dark {
+      background-color: rgba(244, 63, 94, 0.16);
+      border-color: rgba(251, 113, 133, 0.28);
+      color: #fda4af;
+    }
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility deck-expand-panel {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.45s var(--ease-out-expo),
+    transform 0.45s var(--ease-out-expo);
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+  }
+}
+
+@utility deck-expand-panel-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@utility label-premium {
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(100 116 139);
+
+  @variant dark {
+    color: rgb(148 163 184);
+  }
+
+  @media (min-width: 640px) {
+    font-size: 0.75rem;
   }
 }
 
