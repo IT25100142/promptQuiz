@@ -1,12 +1,19 @@
 # PromptQuiz
 
-**Live Demo:** [https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/](https://YOUR_GITHUB_USERNAME.github.io/promptQuiz/) *(replace `YOUR_GITHUB_USERNAME` after enabling GitHub Pages)*
+[![Deploy to GitHub Pages](https://github.com/IT25100142/promptQuiz/actions/workflows/deploy.yml/badge.svg)](https://github.com/IT25100142/promptQuiz/actions/workflows/deploy.yml)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Vitest](https://img.shields.io/badge/Vitest-4-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License](https://img.shields.io/badge/License-Open_Source-blue.svg)](#license)
 
 **A privacy-first, offline study app for active recall and spaced repetition — built entirely in the browser.**
 
-PromptQuiz is a single-page React application that lets you create quiz decks from JSON or plain text, practice with rich question types, schedule reviews with the SM-2 algorithm, and sync content with external LLMs through a copy-paste AI Prompt Builder. No accounts, no backend, no API keys — your decks live in **IndexedDB** on your device.
+[**Live Demo**](https://IT25100142.github.io/promptQuiz/) · [**Report Bug**](https://github.com/IT25100142/promptQuiz/issues) · [**Request Feature**](https://github.com/IT25100142/promptQuiz/issues)
 
-The interface has been refined with a **premium glassmorphism design system**: ambient mesh backgrounds, frosted navigation, fluid card transitions, and polished dark/light themes powered by **Tailwind CSS v4**.
+PromptQuiz is a free single-page React application that lets students create quiz decks from JSON or plain text, practice with rich question types, schedule reviews with the SM-2 algorithm, and sync content with external LLMs through a copy-paste AI Prompt Builder. No accounts, no subscriptions, no backend — your decks live in **IndexedDB** on your device.
+
+The interface features a **premium glassmorphism design system**: ambient mesh backgrounds, frosted navigation, fluid card transitions, and polished dark/light themes powered by **Tailwind CSS v4**.
 
 ---
 
