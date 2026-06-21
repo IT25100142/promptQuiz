@@ -76,7 +76,7 @@ _Placeholder: `docs/screenshots/decks-dark.png`_
 **Requirements:** Node.js 20+, npm 9+
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/IT25100142/promptQuiz.git
 cd promptQuiz
 npm install
 npm run dev
@@ -94,14 +94,14 @@ npm install --legacy-peer-deps
 
 ```bash
 npm run build
-npm run preview   # serve /dist at http://localhost:4173/promptQuiz/
+npm run preview   # http://localhost:4173/promptQuiz/
 ```
 
 ---
 
 ## Deployment
 
-PromptQuiz is configured for **GitHub Pages** at `https://<username>.github.io/promptQuiz/`.
+PromptQuiz deploys automatically to **GitHub Pages** at **[https://IT25100142.github.io/promptQuiz/](https://IT25100142.github.io/promptQuiz/)**.
 
 ### Automatic deploys
 
@@ -109,32 +109,31 @@ Pushes to the **`main`** branch trigger [`.github/workflows/deploy.yml`](.github
 
 1. Installs dependencies with `npm ci`
 2. Runs `npm run build`
-3. Deploys the `dist` folder to GitHub Pages via `actions/deploy-pages@v4`
+3. Deploys the `dist` folder via `actions/deploy-pages@v4`
 
 ### One-time GitHub setup
 
-1. Push this repository to GitHub (repository name: **`promptQuiz`**).
+1. Fork or push this repository to GitHub (repository name: **`promptQuiz`**).
 2. Go to **Settings → Pages → Build and deployment**.
-3. Set **Source** to **GitHub Actions** (not “Deploy from a branch”).
-4. After the first successful workflow run, update the Live Demo link at the top of this README with your GitHub username.
+3. Set **Source** to **GitHub Actions**.
 
-### SPA routing on GitHub Pages
+### SPA routing
 
-- `vite.config.js` sets `base: '/promptQuiz/'`.
-- `BrowserRouter` uses `import.meta.env.BASE_URL` as `basename`.
-- `public/404.html` plus the restore script in `index.html` handle direct links to routes like `/decks` and `/quiz`.
+Direct links to `/decks`, `/quiz`, and other routes work on GitHub Pages via:
 
-If you rename the repository, update the `base` path in `vite.config.js` and `pathSegmentsToKeep` in `public/404.html` to match.
+- `base: '/promptQuiz/'` in `vite.config.js`
+- `basename={import.meta.env.BASE_URL}` on `BrowserRouter`
+- `public/404.html` + restore script in `index.html`
 
 ---
 
 ## Routes
 
 | Path | Page | Purpose |
-|------|------|---------|
+| :--- | :--- | :--- |
 | `/` | → `/decks` | Redirect to library |
-| `/decks` | DecksPage | Library dashboard, import/export, study launch |
-| `/create-deck` | CreateDeckPage | Paste or import questions into a new deck |
+| `/decks` | DecksPage | Library dashboard, import/export |
+| `/create-deck` | CreateDeckPage | Create or import a deck |
 | `/quiz` | QuizPage | Active recall session |
 | `/results` | ResultsPage | Score summary and restart |
 
@@ -144,7 +143,7 @@ If you rename the repository, update the `base` path in `vite.config.js` and `pa
 
 1. **Create a deck** — Go to `/create-deck`, paste JSON or AI block text, submit.
 2. **Study** — From `/decks`, click **Study** on a quiz.
-3. **Answer and rate** — Complete questions; rate recall quality for SM-2 scheduling.
+3. **Answer and rate** — Complete questions; rate recall for SM-2 scheduling.
 4. **Review** — View results at `/results`; restart or review mistakes.
 5. **Backup** — Export library JSON from `/decks` regularly.
 
