@@ -61,7 +61,7 @@ export default function CreateQuizModal({ isOpen, deckId, onClose, onSuccess }) 
       aria-modal="true"
       aria-labelledby="create-quiz-title"
     >
-      <div className="premium-glass modal-panel rounded-3xl shadow-premium max-w-md w-full flex flex-col overflow-hidden">
+      <div className="modal-panel rounded-3xl shadow-premium max-w-md w-full flex flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-900/5 dark:border-white/5 p-6 sm:p-7">
           <div>
             <h2

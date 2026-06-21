@@ -71,7 +71,7 @@ export default function AddQuestionsModal({
       aria-modal="true"
       aria-labelledby="add-questions-title"
     >
-      <div className="premium-glass modal-panel rounded-3xl shadow-premium max-w-lg w-full flex flex-col overflow-hidden max-h-[90vh]">
+      <div className="modal-panel rounded-3xl shadow-premium max-w-lg w-full flex flex-col overflow-hidden max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-slate-900/5 dark:border-white/5 p-6 sm:p-7 shrink-0">
           <div>
             <h2
