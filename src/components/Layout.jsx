@@ -108,7 +108,7 @@ export default function Layout({ children }) {
                     : 'text-slate-500 dark:text-slate-400 font-semibold hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5'
                 }`}
               >
-                Create Deck
+                Import
               </Link>
             </nav>
           </div>
@@ -165,7 +165,7 @@ export default function Layout({ children }) {
               to="/create-deck"
               className="btn-primary inline-flex items-center justify-center rounded-full px-4 sm:px-5 py-2 text-xs font-mono tracking-wider shadow-glow-indigo"
             >
-              New Deck
+              Import
             </Link>
           </div>
         </header>
