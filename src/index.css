@@ -158,6 +158,163 @@
   }
 }
 
+@utility shadow-premium {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 8px 24px -6px rgba(99, 102, 241, 0.1),
+    0 20px 48px -12px rgba(0, 0, 0, 0.06);
+
+  @variant dark {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      0 8px 24px -6px rgba(99, 102, 241, 0.15),
+      0 20px 48px -12px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@utility shadow-glow-indigo {
+  box-shadow:
+    0 4px 14px -3px rgba(99, 102, 241, 0.35),
+    0 8px 24px -6px rgba(99, 102, 241, 0.2);
+
+  @variant dark {
+    box-shadow:
+      0 4px 14px -3px rgba(129, 140, 248, 0.4),
+      0 8px 24px -6px rgba(99, 102, 241, 0.25);
+  }
+}
+
+/* ── Interactive component utilities ── */
+
+@utility btn-primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #818cf8 100%);
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform 0.2s var(--ease-out-expo), box-shadow 0.25s var(--ease-out-expo), filter 0.2s ease;
+
+  @variant dark {
+    background: linear-gradient(135deg, #6366f1 0%, #818cf8 50%, #a5b4fc 100%);
+    color: #0f172a;
+  }
+
+  &:hover {
+    filter: brightness(1.05);
+    box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.45), 0 8px 24px -6px rgba(99, 102, 241, 0.25);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility btn-ghost {
+  background-color: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s var(--ease-out-expo), box-shadow 0.2s ease;
+
+  @variant dark {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  &:hover {
+    background-color: rgba(15, 23, 42, 0.07);
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+
+    @variant dark {
+      background-color: rgba(255, 255, 255, 0.09);
+      box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility pill-badge {
+  background-color: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  @variant dark {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  &:hover {
+    background-color: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.12);
+
+    @variant dark {
+      background-color: rgba(99, 102, 241, 0.12);
+      border-color: rgba(129, 140, 248, 0.2);
+    }
+  }
+}
+
+@utility quiz-option {
+  border-left: 2px solid transparent;
+  transition:
+    background-color 0.2s var(--ease-out-expo),
+    border-color 0.2s ease,
+    transform 0.2s var(--ease-out-expo),
+    box-shadow 0.2s var(--ease-out-expo);
+
+  &:hover {
+    background-color: rgba(15, 23, 42, 0.04);
+    border-left-color: #6366f1;
+    transform: translateX(4px);
+    box-shadow: -4px 0 12px -4px rgba(99, 102, 241, 0.15);
+
+    @variant dark {
+      background-color: rgba(255, 255, 255, 0.04);
+      box-shadow: -4px 0 12px -4px rgba(99, 102, 241, 0.25);
+    }
+  }
+
+  &:active {
+    transform: translateX(2px) scale(0.99);
+  }
+}
+
+@utility input-premium {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: border-color 0.2s ease, box-shadow 0.25s var(--ease-out-expo), background-color 0.2s ease;
+
+  @variant dark {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(15, 23, 42, 0.4);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+
+    @variant dark {
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+  }
+}
+
+@utility toast-glass {
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    0 4px 6px -2px rgba(0, 0, 0, 0.04),
+    0 16px 40px -8px rgba(0, 0, 0, 0.1);
+
+  @variant dark {
+    box-shadow:
+      0 4px 6px -2px rgba(0, 0, 0, 0.2),
+      0 16px 40px -8px rgba(0, 0, 0, 0.45);
+  }
+}
+
 /* Global Element Enforcements */
 html, body, #root {
   margin: 0;
