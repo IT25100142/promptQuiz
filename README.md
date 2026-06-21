@@ -111,11 +111,17 @@ Pushes to the **`main`** branch trigger [`.github/workflows/deploy.yml`](.github
 2. Runs `npm run build`
 3. Deploys the `dist` folder via `actions/deploy-pages@v4`
 
-### One-time GitHub setup
+### One-time GitHub setup (required — site stays blank without this)
 
-1. Fork or push this repository to GitHub (repository name: **`promptQuiz`**).
-2. Go to **Settings → Pages → Build and deployment**.
-3. Set **Source** to **GitHub Actions**.
+GitHub Pages must serve the **built** app, not the raw source on `main`.
+
+**Option A — recommended:** Settings → Pages → **Source: GitHub Actions**
+
+**Option B — branch deploy:** Settings → Pages → **Deploy from a branch** → branch **`gh-pages`**, folder **`/ (root)`**
+
+The workflow builds with Vite and publishes `dist/` to both the `gh-pages` branch and the GitHub Actions Pages artifact on every push to `main`.
+
+> **Blank page?** Your Pages source is still set to the `main` branch. Switch to **GitHub Actions** or **`gh-pages`** as above, then hard-refresh the live URL.
 
 ### SPA routing
 
