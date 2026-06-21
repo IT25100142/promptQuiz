@@ -539,7 +539,7 @@ export default function QuizView({
                       />
                       
                       {showSuggestedAnswer[idx] && (
-                        <div className="rounded-xl border border-indigo-500/10 dark:border-indigo-500/10 bg-indigo-50/10 dark:bg-indigo-950/10 p-6 animate-fade-up">
+                        <div className="rounded-2xl border border-indigo-500/15 dark:border-indigo-400/15 bg-indigo-50/50 dark:bg-indigo-950/25 p-6 animate-fade-up shadow-premium backdrop-blur-sm">
                           <p className="text-[10px] font-mono tracking-widest text-indigo-600 dark:text-indigo-400 uppercase mb-2">Model Answer</p>
                           <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">{current.suggestedAnswer}</p>
                         </div>
@@ -550,14 +550,14 @@ export default function QuizView({
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(true)}
-                            className="flex-1 text-xs font-semibold tracking-widest text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-500/10 focus:outline-none cursor-pointer text-center"
+                            className="flex-1 text-xs font-semibold tracking-widest text-emerald-700 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-all duration-200 active:scale-[0.97] uppercase py-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-500/15 hover:border-emerald-500/30 hover:shadow-[0_4px_14px_-4px_rgba(16,185,129,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 cursor-pointer text-center"
                           >
                             I was correct
                           </button>
                           <button
                             type="button"
                             onClick={() => handleSelfAssessment(false)}
-                            className="flex-1 text-xs font-semibold tracking-widest text-rose-600 hover:text-rose-500 dark:text-rose-400 dark:hover:text-rose-300 transition-all active:scale-[0.97] uppercase py-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-500/10 focus:outline-none cursor-pointer text-center"
+                            className="flex-1 text-xs font-semibold tracking-widest text-rose-700 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-all duration-200 active:scale-[0.97] uppercase py-3.5 rounded-2xl bg-rose-50/80 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-500/15 hover:border-rose-500/30 hover:shadow-[0_4px_14px_-4px_rgba(244,63,94,0.3)] focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40 cursor-pointer text-center"
                           >
                             I still need to review
                           </button>
@@ -580,17 +580,17 @@ export default function QuizView({
 
                 {/* Tactical SM-2 Performance Slider Capsule */}
                 {isAnswered() && (
-                  <div className="mt-12 border-t border-slate-900/5 dark:border-white/5 pt-8 animate-fade-up">
+                  <div className="mt-10 sm:mt-12 border-t border-slate-900/5 dark:border-white/5 pt-8 animate-fade-up">
                     <span className="block text-center text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-6 select-none font-semibold">
                       Rate Recall Performance
                     </span>
-                    <div 
-                      className="relative flex items-center justify-between bg-slate-100/80 dark:bg-slate-950/60 p-1.5 rounded-2xl border border-slate-900/5 dark:border-white/10 max-w-lg mx-auto h-14"
+                    <div
+                      className="relative flex items-center justify-between premium-glass p-1.5 rounded-2xl subpixel-border max-w-lg mx-auto h-14 shadow-premium"
                       onMouseLeave={() => setHoveredRating(null)}
                     >
                       {/* Sliding Highlight Pill */}
-                      <div 
-                        className="absolute top-1.5 bottom-1.5 left-1.5 rounded-xl bg-white dark:bg-slate-900 shadow-[0_2px_10px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-slate-900/5 dark:border-white/10 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
+                      <div
+                        className="absolute top-1.5 bottom-1.5 left-1.5 rounded-xl bg-white/90 dark:bg-slate-800/90 shadow-[0_2px_12px_rgba(99,102,241,0.15),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] border border-indigo-500/10 dark:border-indigo-400/15 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none"
                         style={{
                           width: 'calc(20% - 3px)',
                           transform: hoveredRating !== null 
@@ -635,25 +635,25 @@ export default function QuizView({
       </div>
 
       {/* Editorial Navigation Footer */}
-      <div className={cx("w-full flex items-center justify-between px-1 mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase select-none font-medium transition-all duration-500 ease-in-out", isZenMode && "opacity-0 pointer-events-none scale-95")}>
+      <div className={cx("w-full flex items-center justify-between px-1 mt-6 border-t border-slate-900/5 dark:border-white/5 pt-6 text-[10px] font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase select-none font-medium transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]", isZenMode && "opacity-0 pointer-events-none scale-95 blur-sm")}>
         <button
           type="button"
           onClick={goPrevious}
           disabled={idx === 0}
-          className="hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-all active:scale-[0.97] flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+          className="pill-badge rounded-full px-4 py-2 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-all duration-200 active:scale-[0.97] flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
         >
           ← Previous
         </button>
-        <div className="hidden sm:flex gap-4">
-          <span>Answered: {String(answeredCount).padStart(2, '0')}</span>
-          <span>Score: {String(score).padStart(2, '0')}</span>
-          {isReviewMode && <span>Mistakes: {String(incorrectQuestions.length).padStart(2, '0')}</span>}
+        <div className="hidden sm:flex gap-3">
+          <span className="pill-badge rounded-full px-3 py-1.5">Answered: {String(answeredCount).padStart(2, '0')}</span>
+          <span className="pill-badge rounded-full px-3 py-1.5">Score: {String(score).padStart(2, '0')}</span>
+          {isReviewMode && <span className="pill-badge rounded-full px-3 py-1.5 text-rose-500 dark:text-rose-400">Mistakes: {String(incorrectQuestions.length).padStart(2, '0')}</span>}
         </div>
         <button
           type="button"
           onClick={idx + 1 === total ? onQuizComplete : goNext}
           disabled={!isAnswered()}
-          className="hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:hover:text-slate-400 dark:disabled:hover:text-slate-500 transition-all active:scale-[0.97] flex items-center gap-1 cursor-pointer disabled:cursor-not-allowed"
+          className="rounded-full px-4 py-2 font-bold transition-all duration-200 active:scale-[0.97] flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/15 dark:hover:bg-indigo-500/25 hover:shadow-glow-indigo disabled:hover:shadow-none disabled:bg-transparent disabled:border-transparent disabled:text-slate-400 dark:disabled:text-slate-500"
         >
           {idx + 1 === total ? 'See Results' : 'Next'} →
         </button>
